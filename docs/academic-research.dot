@@ -1,0 +1,35 @@
+digraph research_flow {
+    rankdir=TB;
+    bgcolor="#333537";
+
+    node [shape=box, style="rounded,filled", fillcolor="#0f5223", fontcolor="#cccccc", fontname="Helvetica"];
+    edge [color="#cccccc", fontcolor="#cccccc"];
+
+    // Nodes with robot icons
+    User [label="🤖 User"];
+    A [label="🤖 UserProfile"];
+    B [label="🤖 Problem Formulation"];
+    Lit [label="🤖 Lit Review Agent"];
+    C [label="🤖 Objectives"];
+    D [label="🤖 Methodology"];
+    E [label="🤖 Data Collection"];
+    F [label="🤖 Quality Control"];
+    G [label="🤖 Final Proposal"];
+    H [label="🤖 Refinement Loop"];
+
+    // Edges with process labels
+    User -> A [label="Interview"];
+    A -> B;
+    
+    B -> Lit [label="Delegate Search"];
+    Lit -> B [label="Returns Papers"];
+
+    B -> C;
+    C -> D;
+    D -> E;
+    E -> F;
+
+    F -> G [label="Pass"];
+    F -> H [label="Fail"];
+    H -> B;
+}

@@ -1,0 +1,42 @@
+{
+    "eval_id": "scenario_2_bio_data",
+    "name": "Genomic Data Analysis - PhD Biology",
+    "description": "PhD student in Biology focusing on Genomic Data Analysis with HPC requirements",
+    "user_profile": {
+        "academic_program": "PhD",
+        "field_of_study": "Biology",
+        "research_area": "Genomic Data Analysis",
+        "weekly_hours": 25,
+        "total_timeline": {
+            "value": 12,
+            "unit": "months"
+        },
+        "existing_skills": [
+            "Statistics",
+            "R Programming",
+            "Molecular Biology"
+        ],
+        "missing_skills": [
+            "Deep Learning",
+            "Bioinformatics Tools"
+        ],
+        "constraints": [
+            "Need access to high-performance computing",
+            "Limited budget"
+        ],
+        "additional_context": "Focus on cancer genomics and personalized medicine"
+    },
+    "expected_characteristics": {
+        "problem_domain": "biology",
+        "complexity": "high",
+        "literature_availability": "high",
+        "methodology_type": [
+            "quantitative"
+        ],
+        "sample_size_range": [
+            100,
+            1000
+        ],
+        "requires_tools": true
+    }
+}

@@ -1,0 +1,43 @@
+# Exclude local virtual environments
+.venv/
+venv/
+env/
+
+# Exclude python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Exclude IDE settings
+.vscode/
+.idea/
+.git/
+.gitignore
+
+# --------------------------------------------------------------------
+# SECURITY (CRITICAL)
+# --------------------------------------------------------------------
+# Prevents your local API keys from being baked into the image layer.
+.env
+
+# --------------------------------------------------------------------
+# FOLDERS TO EXCLUDE (To reduce image size)
+# --------------------------------------------------------------------
+demos/
+docs/
+tests/
+eval/
+
+# --------------------------------------------------------------------
+# FILES TO EXCLUDE
+# --------------------------------------------------------------------
+*.svg
+*.md
+!README.md
+
+run_interactive_demo.py
+
+# Local State
+.gemini/
+.coverage
+.pytest_cache/

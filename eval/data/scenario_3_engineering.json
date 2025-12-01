@@ -1,0 +1,43 @@
+{
+    "eval_id": "scenario_3_engineering",
+    "name": "Sustainable Energy Systems - Master's Engineering",
+    "description": "Master's student in Engineering researching Sustainable Energy Systems with industry partnership",
+    "user_profile": {
+        "academic_program": "Master's",
+        "field_of_study": "Engineering",
+        "research_area": "Sustainable Energy Systems",
+        "weekly_hours": 20,
+        "total_timeline": {
+            "value": 9,
+            "unit": "months"
+        },
+        "existing_skills": [
+            "Control Systems",
+            "MATLAB",
+            "Power Systems"
+        ],
+        "missing_skills": [
+            "Optimization",
+            "Renewable Energy Modeling"
+        ],
+        "constraints": [
+            "Industry partnership required",
+            "Field work limited"
+        ],
+        "additional_context": "Investigating grid integration of renewable sources"
+    },
+    "expected_characteristics": {
+        "problem_domain": "engineering",
+        "complexity": "moderate",
+        "literature_availability": "moderate",
+        "methodology_type": [
+            "quantitative",
+            "mixed-methods"
+        ],
+        "sample_size_range": [
+            20,
+            100
+        ],
+        "requires_tools": true
+    }
+}

@@ -1,0 +1,1 @@
+> These tools are not yet integrated into the multi-agent system. They were proposed as a way to structure the literature review generated during the development phase, but there was not enough time to fully integrate them into the agents or workflows.

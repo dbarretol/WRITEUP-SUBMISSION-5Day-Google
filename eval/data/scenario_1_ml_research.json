@@ -1,0 +1,43 @@
+{
+    "eval_id": "scenario_1_ml_research",
+    "name": "Multi-Agent Systems Research - Master's CS",
+    "description": "Master's student in Computer Science researching Multi-Agent Systems with remote constraints",
+    "user_profile": {
+        "academic_program": "Master's",
+        "field_of_study": "Computer Science",
+        "research_area": "Multi-Agent Systems",
+        "weekly_hours": 15,
+        "total_timeline": {
+            "value": 6,
+            "unit": "months"
+        },
+        "existing_skills": [
+            "Python",
+            "Machine Learning",
+            "Data Analysis"
+        ],
+        "missing_skills": [
+            "Distributed Systems",
+            "Game Theory"
+        ],
+        "constraints": [
+            "Remote only",
+            "Limited computational resources"
+        ],
+        "additional_context": "Interested in coordination mechanisms for autonomous agents"
+    },
+    "expected_characteristics": {
+        "problem_domain": "computer_science",
+        "complexity": "moderate",
+        "literature_availability": "high",
+        "methodology_type": [
+            "quantitative",
+            "mixed-methods"
+        ],
+        "sample_size_range": [
+            30,
+            200
+        ],
+        "requires_tools": true
+    }
+}

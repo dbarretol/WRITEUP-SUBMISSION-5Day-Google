@@ -1,0 +1,43 @@
+{
+    "eval_id": "scenario_4_tight_timeline",
+    "name": "Cognitive Behavioral Patterns - Undergrad Psychology",
+    "description": "Undergraduate student in Psychology with very tight timeline and limited resources (edge case)",
+    "user_profile": {
+        "academic_program": "Undergraduate",
+        "field_of_study": "Psychology",
+        "research_area": "Cognitive Behavioral Patterns",
+        "weekly_hours": 10,
+        "total_timeline": {
+            "value": 3,
+            "unit": "months"
+        },
+        "existing_skills": [
+            "Survey Design",
+            "SPSS"
+        ],
+        "missing_skills": [
+            "Advanced Statistics",
+            "Experimental Design"
+        ],
+        "constraints": [
+            "Short timeline",
+            "No budget",
+            "Remote only"
+        ],
+        "additional_context": "Final year thesis project on social media impact"
+    },
+    "expected_characteristics": {
+        "problem_domain": "psychology",
+        "complexity": "low",
+        "literature_availability": "moderate",
+        "methodology_type": [
+            "qualitative",
+            "mixed-methods"
+        ],
+        "sample_size_range": [
+            20,
+            80
+        ],
+        "requires_tools": false
+    }
+}

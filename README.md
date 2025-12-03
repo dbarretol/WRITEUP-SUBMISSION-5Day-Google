@@ -16,7 +16,7 @@ The workflow consists of 6 distinct stages:
 5.  **Data Collection**: Operational planning (Tools, Sample Size, Timeline).
 6.  **Quality Control**: Automatic scoring and feedback loops for refinement.
 
-
+> Check [Problem-Solution fit of AIDA](https://github.com/dbarretol/WRITEUP-SUBMISSION-5Day-Google/blob/main/docs/WRITE-UP.md)
 
 ## 🎯 Key Features
 

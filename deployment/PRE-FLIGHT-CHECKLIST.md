@@ -1,6 +1,8 @@
-Before running the deployment script (`deploy.ps1` or `deploy.sh`), perform this **6-point Pre-Flight Checklist**.
+# Pre-Flight Checklist
 
-If any of these check fails, the deployment script will likely error out or the deployed application will crash on startup.
+Before running the deployment script (`deployment/deploy.ps1` or `deployment/deploy.sh`), perform this **6-point Pre-Flight Checklist**.
+
+If any of these checks fail, the deployment script will likely error out, or the deployed application will crash on startup.
 
 ### 1. Verification: Cloud SDK Installation & Login
 You need the Google Cloud CLI tools installed and authenticated.
@@ -27,20 +29,21 @@ Cloud Run, Cloud Build, and Vertex AI APIs must be enabled on your project.
 
 *   **Fix:**
     ```bash
-    gcloud services enable run.googleapis.com cloudbuild.googleapis.com aiplatform.googleapis.com artifactregistry.googleapis.com storage.googleapis.com
+    gcloud services enable run.googleapis.com cloudbuild.googleapis.com aiplatform.googleapis.com
     ```
 
-### 3. Verification: Storage Bucket Existence
-Your script requires a `-BucketName`. This bucket must already exist.
+### 3. Verification: Service Account Permissions (Vertex AI)
+Your application is configured to use Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=true`). The default Cloud Run service account needs permission to call Gemini models.
 
-*   **Check:**
+*   **Context:** Cloud Run uses the Compute Engine default service account by default (looks like `[PROJECT_NUMBER]-compute@developer.gserviceaccount.com`).
+*   **Fix/Grant:** Run this to grant the necessary role:
     ```bash
-    # Replace with the bucket name you plan to use
-    gcloud storage buckets describe gs://YOUR_BUCKET_NAME
-    ```
-*   **Fix:** If it says "Not found":
-    ```bash
-    gcloud storage buckets create gs://YOUR_BUCKET_NAME --location=us-central1
+    # Replace with your Project ID and Project Number
+    # You can find the project number via: gcloud projects describe YOUR_PROJECT_ID
+    
+    gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+        --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+        --role="roles/aiplatform.user"
     ```
 
 ### 4. Verification: `uv.lock` Sync
@@ -61,9 +64,9 @@ This is critical for upload speed and preventing crashes.
 ### 6. Verification: Local Docker Build (Optional but Recommended)
 If you have Docker installed locally, try building the image on your machine first. If it breaks here, it will break in the cloud.
 
-*   **Check:**
+*   **Check:** (Note the `-f` flag because your Dockerfile is in a subfolder)
     ```bash
-    docker build . -t test-build
+    docker build . -f deployment/Dockerfile -t test-build
     ```
 *   **If it passes:** You can be 99% sure the cloud build will pass.
 *   **If you don't have Docker:** You can skip this and let Cloud Build handle it, but debugging is slower.
@@ -77,12 +80,18 @@ If you have Docker installed locally, try building the image on your machine fir
 | **Logged In** | `gcloud auth login` | ✅ |
 | **Project Set** | `gcloud config set project <ID>` | ✅ |
 | **APIs Up** | `gcloud services enable ...` | ✅ |
-| **Bucket Exists** | `gcloud storage buckets create ...` | ✅ |
+| **IAM Role** | Grant `roles/aiplatform.user` | ✅ |
 | **Lockfile** | `uv sync` (File `uv.lock` exists) | ✅ |
 | **Ignore File** | File `.dockerignore` exists | ✅ |
 
 Once these are green, you are safe to run:
 
+**PowerShell:**
 ```powershell
-.\deployment\deploy.ps1 -ProjectId "..." -BucketName "..."
+.\deployment\deploy.ps1 -ProjectId "your-project-id"
+```
+
+**Bash:**
+```bash
+./deployment/deploy.sh -p "your-project-id"
 ```

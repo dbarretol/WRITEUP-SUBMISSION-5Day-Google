@@ -44,8 +44,8 @@ To run the tests, you need the following environment setup:
 
 The tests are organized by component:
 
-### 🤖 Agent Tests
-Verify agent initialization, configuration, and prompt generation.
+### 🤖 Agent Tests (Unit Tests)
+Verify agent initialization, configuration, and prompt generation using mocks.
 
 | File | Component | Description |
 |------|-----------|-------------|
@@ -55,7 +55,6 @@ Verify agent initialization, configuration, and prompt generation.
 | `test_data_collection_agent.py` | Data Collection | Tests data plan generation |
 | `test_quality_control_agent.py` | Quality Control | Tests validation scoring and feedback loops |
 | `test_interviewer_agent.py` | Interviewer | Tests profile collection logic |
-| `test_literature_review.py` | Literature Review | Tests the specialized literature review sub-agent |
 
 ### 🎼 Orchestration Tests
 Verify the central coordination logic.
@@ -64,14 +63,21 @@ Verify the central coordination logic.
 |------|-----------|-------------|
 | `test_orchestrator.py` | Orchestrator | **Critical**: Tests full workflow, state transitions, and refinement loops |
 
-### 🔧 Infrastructure & Tool Tests
-Verify underlying systems and tools.
+### 🔧 Integration \& Tool Tests
+Verify end-to-end functionality and tool integration with real API calls.
 
 | File | Component | Description |
 |------|-----------|-------------|
-| `test_state_management.py` | State Manager | Tests persistence to `.gemini/` folder |
-| `test_communication.py` | Messaging | Tests the internal message bus |
-| `test_google_search.py` | Google Search | Tests the search tool integration |
+| `test_literature_review.py` | Literature Review | **Integration test**: Tests the specialized literature review sub-agent with real execution |
+| `test_google_search.py` | Google Search | **Integration test**: Tests the search tool integration with real agent execution |
+
+### 🛠️ Utility Tests
+Verify supporting utilities and infrastructure.
+
+| File | Component | Description |
+|------|-----------|-------------|
+| `test_pdf_generation.py` | PDF Generator | Tests PDF proposal generation from JSON data |
+| `reproduce_json_extraction.py` | JSON Extraction | Utility script for testing JSON extraction strategies |
 
 ---
 
@@ -88,7 +94,7 @@ uv run pytest tests/
 ### 2. Run with Coverage Report
 Checks how much of the codebase is covered by tests.
 ```bash
-uv run pytest tests/ --cov=academic_research
+uv run pytest tests/ --cov=aida
 ```
 
 ### 3. Run Specific Test File

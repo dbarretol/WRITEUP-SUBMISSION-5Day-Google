@@ -1,14 +1,13 @@
 [server]
 headless = true
-port = 8080
-address = "0.0.0.0"
-enableCORS = false
+port = 8501
+address = "localhost"
 enableXsrfProtection = true
 
 [browser]
 gatherUsageStats = false
-serverAddress = "0.0.0.0"
-serverPort = 8080
+serverAddress = "localhost"
+serverPort = 8501
 
 [runner]
 fastReruns = false

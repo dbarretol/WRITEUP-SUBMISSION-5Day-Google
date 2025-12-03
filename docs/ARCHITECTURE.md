@@ -21,8 +21,8 @@ graph TD
     Meth -->|MethodologyRec| Data[Data Collection]
     Data -->|DataPlan| QC[Quality Control]
     
-    QC -->|Pass| End[Final Proposal]
-    QC -->|Fail (Refine)| PF
+    QC -->|Pass| End[Final Proposal - PDF]
+    QC -->|Fail - Refine| PF
 ```
 
 ### Workflow State Machine
@@ -64,45 +64,45 @@ stateDiagram-v2
 
 ## 🤖 Specialized Agents
 
-Each agent is a self-contained module in `academic_research/sub_agents/`.
+Each agent is a self-contained module in `aida/sub_agents/`.
 
 #### 1. **Interviewer Agent**
 - **Purpose**: Interactive State Machine for gathering requirements.
-- **Location**: [`sub_agents/interviewer/`](../academic_research/sub_agents/interviewer/)
+- **Location**: [`sub_agents/interviewer/`](../aida/sub_agents/interviewer/)
 - **Input**: User String
 - **Output**: `UserProfile`
 
 #### 2. **Problem Formulation Agent**
 - **Purpose**: Defines the research gap using real literature.
-- **Location**: [`sub_agents/problem_formulation/`](../academic_research/sub_agents/problem_formulation/)
+- **Location**: [`sub_agents/problem_formulation/`](../aida/sub_agents/problem_formulation/)
 - **Tools**: Delegates to `LiteratureReviewAgent` (`google_search`).
 - **Output**: `ProblemDefinition`
 
 #### 3. **Objectives Agent**
 - **Purpose**: Translates the problem into SMART goals.
-- **Location**: [`sub_agents/objectives/`](../academic_research/sub_agents/objectives/)
+- **Location**: [`sub_agents/objectives/`](../aida/sub_agents/objectives/)
 - **Output**: `ResearchObjectives`
 
 #### 4. **Methodology Agent**
 - **Purpose**: Designs the scientific approach (Qual/Quant).
-- **Location**: [`sub_agents/methodology/`](../academic_research/sub_agents/methodology/)
+- **Location**: [`sub_agents/methodology/`](../aida/sub_agents/methodology/)
 - **Output**: `MethodologyRecommendation`
 
 #### 5. **Data Collection Agent**
 - **Purpose**: Operational planning (Tools, Sample Size).
-- **Location**: [`sub_agents/data_collection/`](../academic_research/sub_agents/data_collection/)
+- **Location**: [`sub_agents/data_collection/`](../aida/sub_agents/data_collection/)
 - **Output**: `DataCollectionPlan`
 
 #### 6. **Quality Control Agent**
 - **Purpose**: Validates logic, timeline, and feasibility.
-- **Location**: [`sub_agents/quality_control/`](../academic_research/sub_agents/quality_control/)
+- **Location**: [`sub_agents/quality_control/`](../aida/sub_agents/quality_control/)
 - **Output**: `QualityValidation` (Scores + Refinement Targets)
 
 ---
 
 ## 🧬 Data Models
 
-Strict Pydantic contracts defined in [`data_models.py`](../academic_research/data_models.py) ensure interface compatibility between agents.
+Strict Pydantic contracts defined in [`data_models.py`](../aida/data_models.py) ensure interface compatibility between agents.
 
 | Model | Key Fields |
 |-------|------------|
@@ -117,38 +117,53 @@ Strict Pydantic contracts defined in [`data_models.py`](../academic_research/dat
 
 ## 🎼 Orchestration Logic
 
-The [`ResearchProposalOrchestrator`](../academic_research/orchestrator.py) is the central controller.
+The [`ResearchProposalOrchestrator`](../aida/orchestrator.py) is the central controller.
 
 ### 1. Execution Strategy
-*   **Sequential**: It calls agents one by one.
-*   **Context Injection**: Before calling an agent, it uses a `format_prompt` helper function to inject the outputs of *all* previous agents into the prompt context.
-*   **JSON Extraction**: Uses regex fallbacks to parse JSON from LLM responses even if they contain Markdown (` ```json `).
+*   **Sequential**: It calls agents one by one based on the state machine.
+*   **Ephemeral Runners**: For every agent execution, it creates a new `InMemoryRunner`. This ensures that tool execution history (like Google Search results) is fresh for the specific task and prevents context pollution between stages.
+*   **Context Injection**: Before calling an agent, it uses `format_prompt` helper functions to inject the outputs of *all* relevant previous agents into the prompt.
 
-### 2. Refinement Loop Logic
+### 2. JSON Robustness
+The orchestrator implements a multi-stage JSON extractor (`_extract_json_from_response`) to handle LLM variability:
+1.  **Direct Parse**: `json.loads()`
+2.  **Markdown Stripping**: Removes ` ```json ` fences.
+3.  **Regex Recovery**: Extracts `{ ... }` blocks from mixed conversational text.
+
+### 3. Refinement Loop Logic
 When `QualityValidation.requires_refinement` is `True`:
-1.  Orchestrator checks `refinement_count < max_refinements` (default 3).
+1.  Orchestrator checks `refinement_count < MAX_REFINEMENTS` (from config).
 2.  Transitions to `REFINEMENT` state.
 3.  Loops back to `run_problem_formulation`.
-4.  **Crucially**, it passes the `quality_validation.recommendations` as a `feedback` string to the Problem Formulation agent, enabling it to improve the next draft.
+4.  **Crucially**, it passes the `quality_validation.recommendations` as a `refinement_feedback` string to the Problem Formulation agent, prompting a revision.
 
 ---
 
 ## 🛠️ Infrastructure Components
 
-### State Management
+### State & Workflow
 *   **`workflow_state.py`**: Defines the `WorkflowContext` class and valid state transitions.
-*   **`state_manager.py`**: Serializes the context to JSON files in `.gemini/state/`.
+*   **`orchestrator.py`**: Manages the in-memory state of the proposal parts (`self.problem_definition`, etc.).
 
-### Communication
-*   **`communication.py`**: Defines the `AgentMessage` envelope (ID, Timestamp, Sender, Content).
-*   **`message_router.py`**: A Pub/Sub bus that logs all agent-to-agent traffic to `.gemini/logs/`.
-
-### Configuration
+### Configuration & Environment
 *   **`config.py`**: Centralizes settings like `DEFAULT_MODEL` ("gemini-2.0-flash-lite") and `RETRY_CONFIG` (exponential backoff for API 429 errors).
+*   **`__init__.py`**: Handles environment detection.
+    *   **Vertex AI**: Used if `GOOGLE_GENAI_USE_VERTEXAI` is True (auto-detects Project/Region).
+    *   **Standard API**: Used if False (requires `GOOGLE_API_KEY`).
+
+### Output Generation
+*   **`pdf_generator.py`**: A utility module using `reportlab`.
+    *   Takes the final aggregated dictionary of Pydantic models.
+    *   Renders a professional PDF with Table of Contents, Hyperlinks for Literature, and structured headings.
 
 ---
 
 ## 🧪 Testing Strategy
+
+The architecture supports testing via the `InMemoryRunner` pattern:
+
+1.  **Unit Testing**: Individual agents can be tested by instantiating them and passing a mock prompt to an `InMemoryRunner`.
+2.  **Orchestrator Testing**: The Orchestrator accepts a `runner` argument (or creates one internally), allowing for end-to-end integration tests where prompts are mocked or real LLM calls are made.
 
 | Level | Tool | Scope | Command |
 |-------|------|-------|---------|
@@ -160,16 +175,16 @@ When `QualityValidation.requires_refinement` is `True`:
 
 ## 📐 Design Patterns Used
 
-1.  **Orchestrator Pattern**: Centralized control flow vs. Choreography (decentralized).
+1.  **Orchestrator Pattern**: Centralized control flow (`ResearchProposalOrchestrator`) rather than decentralized choreography.
 2.  **Factory Pattern**: `create_..._agent()` functions encapsulate model config and tool binding.
-3.  **State Machine**: Explicit state transitions prevent logic errors (e.g., skipping objectives).
-4.  **Chain of Thought**: Agents act sequentially, mimicking human reasoning steps.
-5.  **Tool Use**: The Problem Formulation agent delegates to a specific "Search Tool" rather than searching itself.
+3.  **State Machine**: Explicit `WorkflowState` enum prevents logic errors (e.g., skipping objectives).
+4.  **Tool Use**: The Problem Formulation agent delegates to a specific "Search Tool" via `AgentTool`.
+5.  **Strict Typing**: Usage of Pydantic models for all agent interfaces ensures data integrity.
 
 ---
 
 ## See Also
 
-- [Data Flow Documentation](./DATA_FLOW.md)
-- [Agent Guide](./AGENT_GUIDE.md)
 - [Project README](../README.md)
+- [Agent Guide](./AGENT_GUIDE.md)
+- [Data Flow Documentation](./DATA_FLOW.md)

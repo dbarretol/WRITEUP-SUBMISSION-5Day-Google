@@ -25,14 +25,14 @@ This guide provides detailed technical specifications for the specialized agents
 An interactive State Machine agent that interviews the user to build their academic profile.
 
 ### Location
-[`academic_research/sub_agents/interviewer/`](../academic_research/sub_agents/interviewer/)
+[`aida/sub_agents/interviewer/`](../aida/sub_agents/interviewer/)
 
 ### Usage Logic
 Unlike other agents, this uses a explicit state loop (`process_turn`).
 
 ```python
-from academic_research.sub_agents.interviewer import InterviewerAgent
-from academic_research.data_models import InterviewState
+from aida.sub_agents.interviewer import InterviewerAgent
+from aida.data_models import InterviewState
 
 agent = InterviewerAgent(model="gemini-2.0-flash-lite")
 state = InterviewState()
@@ -60,12 +60,12 @@ profile = result["final_profile"]
 The first reasoning step. Delegates to a **Literature Review** sub-agent to find real papers and defines the research gap.
 
 ### Location
-[`academic_research/sub_agents/problem_formulation/`](../academic_research/sub_agents/problem_formulation/)
+[`aida/sub_agents/problem_formulation/`](../aida/sub_agents/problem_formulation/)
 
 ### Usage
 
 ```python
-from academic_research.sub_agents.problem_formulation import (
+from aida.sub_agents.problem_formulation import (
     create_problem_formulation_agent,
     format_prompt_for_user_profile
 )
@@ -73,13 +73,23 @@ from google.adk.runners import InMemoryRunner
 
 # Factory creates the main agent AND the sub-agent
 agent = create_problem_formulation_agent(model="gemini-2.0-flash-lite")
-runner = InMemoryRunner(agent=agent)
 
 prompt = format_prompt_for_user_profile(user_profile)
 
 # Must be run with a Runner to handle Tool Calls (Literature Search)
-async for event in runner.run_async(new_message=prompt):
-    pass # Handle output
+# Use async with for proper cleanup
+async with InMemoryRunner(agent=agent, app_name="problem-formulation") as runner:
+    session = await runner.session_service.create_session(
+        app_name="problem-formulation",
+        user_id="test_user"
+    )
+    
+    async for event in runner.run_async(
+        user_id=session.user_id,
+        session_id=session.id,
+        new_message=prompt
+    ):
+        pass # Handle output
 ```
 
 ### Tools Used
@@ -107,12 +117,12 @@ async for event in runner.run_async(new_message=prompt):
 Translates the abstract problem into concrete, actionable SMART objectives.
 
 ### Location
-[`academic_research/sub_agents/objectives/`](../academic_research/sub_agents/objectives/)
+[`aida/sub_agents/objectives/`](../aida/sub_agents/objectives/)
 
 ### Usage
 
 ```python
-from academic_research.sub_agents.objectives import (
+from aida.sub_agents.objectives import (
     create_objectives_agent,
     format_prompt_for_objectives
 )
@@ -145,12 +155,12 @@ prompt = format_prompt_for_objectives(user_profile, problem_definition)
 Designing the "How". Determines the research type (Qual/Quant/Mixed) and validates timeline fit.
 
 ### Location
-[`academic_research/sub_agents/methodology/`](../academic_research/sub_agents/methodology/)
+[`aida/sub_agents/methodology/`](../aida/sub_agents/methodology/)
 
 ### Usage
 
 ```python
-from academic_research.sub_agents.methodology import (
+from aida.sub_agents.methodology import (
     create_methodology_agent,
     format_prompt_for_methodology
 )
@@ -182,7 +192,7 @@ prompt = format_prompt_for_methodology(user_profile, problem_def, objectives)
 Operational planning. Selects tools, estimates sample sizes, and builds the schedule phase-by-phase.
 
 ### Location
-[`academic_research/sub_agents/data_collection/`](../academic_research/sub_agents/data_collection/)
+[`aida/sub_agents/data_collection/`](../aida/sub_agents/data_collection/)
 
 ### Output Schema (`DataCollectionPlan`)
 ```python
@@ -208,12 +218,12 @@ Operational planning. Selects tools, estimates sample sizes, and builds the sche
 The Gatekeeper. Scores the proposal and directs the Orchestrator on whether to finish or loop back for refinement.
 
 ### Location
-[`academic_research/sub_agents/quality_control/`](../academic_research/sub_agents/quality_control/)
+[`aida/sub_agents/quality_control/`](../aida/sub_agents/quality_control/)
 
 ### Usage
 
 ```python
-from academic_research.sub_agents.quality_control import (
+from aida.sub_agents.quality_control import (
     create_quality_control_agent,
     format_prompt_for_quality_control
 )
@@ -248,21 +258,20 @@ prompt = format_prompt_for_quality_control(
 Coordinates the agents, manages state transitions, and handles the refinement loop.
 
 ### Location
-[`academic_research/orchestrator.py`](../academic_research/orchestrator.py)
+[`aida/orchestrator.py`](../aida/orchestrator.py)
 
 ### Running the Full Pipeline
 
 ```python
 import asyncio
-from academic_research.orchestrator import ResearchProposalOrchestrator
-from academic_research.sub_agents.problem_formulation import create_problem_formulation_agent
+from aida.orchestrator import ResearchProposalOrchestrator
+from aida.sub_agents.problem_formulation import create_problem_formulation_agent
 # ... import other create functions ...
 from google.adk.runners import InMemoryRunner
 
 async def run():
     # 1. Setup
     orchestrator = ResearchProposalOrchestrator()
-    runner = InMemoryRunner(agent=None) # Placeholder, swapped dynamically
     
     # 2. Define Agents Dictionary
     agents = {
@@ -274,10 +283,10 @@ async def run():
         "quality_control": create_quality_control_agent()
     }
 
-    # 3. Run
+    # 3. Run (Runner is managed internally by orchestrator using async with)
     result = await orchestrator.run_workflow(
         agents=agents,
-        runner=runner,
+        runner=None, # Pass None as orchestrator creates its own scoped runner
         initial_profile=my_user_profile
     )
 

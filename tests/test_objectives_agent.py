@@ -1,13 +1,13 @@
 """Unit tests for the Objectives Agent."""
 
 import pytest
-from academic_research.sub_agents.objectives import (
+from aida.sub_agents.objectives import (
     ObjectivesAgent,
     create_objectives_agent,
     format_prompt_for_objectives
 )
-from academic_research.config import RETRY_CONFIG
-from academic_research.data_models import (
+from aida.config import RETRY_CONFIG
+from aida.data_models import (
     UserProfile,
     ProblemDefinition,
     ResearchObjectives,

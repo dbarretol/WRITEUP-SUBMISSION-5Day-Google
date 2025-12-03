@@ -79,5 +79,3 @@ AIDA is not designed to replace the work of the student; it is designed to repla
 For a student in Peru, AIDA means the difference between a rejected proposal and a viable path to graduation. It teaches them that research is not about magic, but about structure. By interacting with the system, they unknowingly learn the scientific method—learning how to narrow a scope, how to define an objective, and how to match a method to a problem.
 
 This project demonstrates the power of Gemini and multi-agent systems not just to generate text, but to structure thought and democratization access to high-quality academic mentorship.
-
-Cloud Run: https://aida-research-agent-1006951032226.us-central1.run.app

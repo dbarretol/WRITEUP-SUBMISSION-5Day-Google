@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes how data flows through the Multi-Agent Research Proposal System, from initial user input to the final generated proposal. It details the transformation of data at each stage and the strict Pydantic contracts that enforce integrity.
+This document describes how data flows through the Multi-Agent Research Proposal System, from initial user input to the final generated PDF proposal. It details the transformation of data at each stage and the strict Pydantic contracts that enforce integrity between the Orchestrator and the Agents.
 
 ---
 
@@ -22,7 +22,7 @@ graph TD
     Obj -->|Outputs| Goals[ResearchObjectives]
     
     Goals --> Meth[Methodology Agent]
-    Meth -->|Outputs| Method[MethodologyRec]
+    Meth -->|Outputs| Method[MethodologyRecommendation]
     
     Method --> Data[Data Collection Agent]
     Data -->|Outputs| Plan[DataCollectionPlan]
@@ -30,9 +30,12 @@ graph TD
     Plan --> QC[Quality Control Agent]
     QC -->|Validates| Val[QualityValidation]
     
-    Val -->|Pass| Final[Final Proposal]
+    Val -->|Pass| JSON[Final JSON Structure]
     Val -->|Fail| Refine[Refinement Loop]
     Refine -->|Feedback + Context| PF
+    
+    JSON --> PDF[PDF Generator]
+    PDF --> Doc[Final Proposal.pdf]
 ```
 
 ---
@@ -41,8 +44,8 @@ graph TD
 
 ### Stage 1: User Profile Collection
 
-*   **Agent**: `InterviewerAgent` (State Machine)
-*   **Input**: Interactive strings from user
+*   **Agent**: `InterviewerAgent`
+*   **Input**: Interactive strings from user (or static profile in autonomous mode)
 *   **Output Model**: `UserProfile`
 
 ```python
@@ -68,15 +71,15 @@ UserProfile {
 
 *   **Agent**: `ProblemFormulationAgent`
 *   **Input**: `UserProfile`
-*   **Internal Tool**: Calls `LiteratureReviewAgent` -> `google_search`
+*   **Internal Tool**: Calls `LiteratureReviewAgent` via `AgentTool`
 *   **Output Model**: `ProblemDefinition`
 
 **Search Delegation Flow**:
-1. Main Agent receives Profile.
-2. Calls Tool: `literature_review_agent(field="CS", area="MAS")`.
-3. Tool performs Google Search (site:arxiv.org, etc.).
-4. Tool returns list of valid URLs.
-5. Main Agent synthesizes `ProblemDefinition`.
+1. Orchestrator calls `ProblemFormulationAgent`.
+2. Agent calls Tool: `literature_review_agent(field="CS", area="MAS")`.
+3. Tool performs Google Search (via `google_search` function).
+4. Tool returns list of `LiteratureEntry` items.
+5. Agent synthesizes `ProblemDefinition` using real citations.
 
 ```python
 ProblemDefinition {
@@ -84,7 +87,7 @@ ProblemDefinition {
     main_research_question: str   # The primary question
     secondary_questions: List[str]# 2-4 sub-questions
     key_variables: List[str]      # e.g. "Agent Coordination", "Latency"
-    preliminary_literature: [     # Sourced from Tool
+    preliminary_literature: [     # List[LiteratureEntry]
         {
             "title": str,
             "url": str,           # Validated URL
@@ -92,7 +95,7 @@ ProblemDefinition {
             "source": str         # e.g. "arxiv.org"
         }
     ],
-    refinement_history: List[Dict]
+    refinement_history: List[Union[Dict, str]]
 }
 ```
 
@@ -115,7 +118,7 @@ ResearchObjectives {
     feasibility_notes: Dict {
         "timeline_assessment": str,
         "skills_required": List[str],
-        "constraint_compliance": str
+        "risk_factors": List[str]
     }
     alignment_check: Dict {
         "coverage_analysis": str,  # Ensures all RQs are answered
@@ -171,6 +174,7 @@ DataCollectionPlan {
     timeline_breakdown: Dict {     # Phased schedule
         "preparation": Dict,
         "collection": Dict,
+        "quality_check": Dict,
         "total_duration": str
     }
     resource_requirements: List[str]
@@ -192,7 +196,7 @@ DataCollectionPlan {
 
 ```python
 QualityValidation {
-    validation_passed: bool        # True only if Score >= 0.65 AND No Critical Issues
+    validation_passed: bool        # True only if Coherence >= 0.7 AND Feasibility >= 0.7 AND No Critical Issues
     coherence_score: float
     feasibility_score: float
     overall_quality_score: float   # 0-100
@@ -204,7 +208,7 @@ QualityValidation {
             "impact": str
         }
     ],
-    recommendations: List[str]     # Specific feedback
+    recommendations: List[str]     # Specific feedback used for refinement
     requires_refinement: bool
     refinement_targets: List[str]  # e.g. ["problem_definition"]
 }
@@ -212,19 +216,31 @@ QualityValidation {
 
 ---
 
+### Stage 7: PDF Generation
+
+*   **Module**: `pdf_generator.py`
+*   **Input**: Aggregated JSON Dictionary (from `orchestrator._generate_final_proposal`)
+*   **Output**: Binary PDF Stream (`BytesIO`)
+
+The generator converts the raw Pydantic dictionaries into a ReportLab document structure:
+*   **Hyperlinks**: `ProblemDefinition.preliminary_literature` URLs become clickable links.
+*   **Formatting**: Headers, bullet points, and justified text are applied for readability.
+
+---
+
 ## 🔄 Refinement Loop Flow
 
 When `QualityValidation.requires_refinement` is **True**:
 
-1.  **Orchestrator** checks `workflow_context.refinement_count`.
+1.  **Orchestrator** checks `workflow_context.refinement_count` against `config.MAX_REFINEMENTS`.
 2.  If limit not reached:
     *   Extracts `recommendations` from QC output.
-    *   Constructs a **Feedback Prompt**.
+    *   Transitions state to `WorkflowState.REFINEMENT`.
     *   Loops back to **Stage 2 (Problem Formulation)**.
-3.  **Problem Formulation Agent** receives:
+3.  **Problem Formulation Agent** receives a modified prompt containing:
     *   Original User Profile.
     *   *Previous* Problem Definition.
-    *   **Context**: "Refine the previous definition based on this feedback: [QC Recommendations]".
+    *   **Refinement Context**: "Refine the problem definition based on the user's feedback: [QC Recommendations]".
 
 ```mermaid
 sequenceDiagram
@@ -235,30 +251,51 @@ sequenceDiagram
     QC->>Orch: validation_passed=False
     QC->>Orch: recommendations=["Narrow scope"]
     
-    Orch->>Orch: Check Refinement Limit
-    Orch->>PF: Run(Profile + Feedback + Old_Def)
+    Orch->>Orch: Check Refinement Limit (<3)
+    Orch->>PF: Run(Profile, Feedback="Narrow scope", Old_Def)
     
     PF->>PF: Generates V2 Definition
     PF->>Orch: ProblemDefinition (V2)
     
-    Orch->>Orch: Continue Pipeline (Obj -> Method -> ...)
+    Orch->>Orch: Re-run Obj -> Method -> Data -> QC
 ```
 
 ---
 
-## 💾 State Persistence
+## 🛡️ Data Handling & Error Recovery
 
-The system uses `state_manager.py` to persist data to the local file system.
+### JSON Robustness
+The `Orchestrator` (`_extract_json_from_response`) uses a three-tier strategy to prevent crashes from malformed LLM output:
+1.  **Strategy 1 (Direct)**: Attempts `json.loads(response)`.
+2.  **Strategy 2 (Clean)**: Removes Markdown fences (` ```json ` ... ` ``` `) and attempts parse.
+3.  **Strategy 3 (Regex)**: Scans the text for the outermost `{ ... }` block and attempts to parse it, ignoring conversational text surrounding the JSON.
 
-*   **State File**: `.gemini/state/{run_id}_state.json`
-    *   Stores current step (`WorkflowState`) and history.
-*   **Snapshots**: `.gemini/snapshots/{run_id}_iter{N}_{timestamp}.json`
-    *   Full dump of all agent outputs at a specific point in time.
+### State Persistence
+The system assumes the use of a `StateManager` (not detailed in this document but referenced in architecture) to save:
+*   **Snapshots**: `orchestrator.run_workflow` returns a full dictionary of the proposal state which can be serialized to JSON.
+*   **Workflow History**: The `WorkflowContext` object tracks every state transition (`from_state`, `to_state`, `timestamp`), which is returned in the final result metadata for auditability.
 
 ---
 
-## 🛡️ Error Handling
+## 🛡️ Error Handling & Resilience
 
-*   **JSON Extraction**: `orchestrator._extract_json_from_response` uses regex fallbacks to handle mixed Markdown/JSON outputs.
-*   **Retry Logic**: `config.RETRY_CONFIG` handles 429 (Rate Limit) and 5xx errors automatically.
-*   **Transition Checks**: `workflow_state.is_valid_transition` prevents out-of-order execution.
+The system implements defense-in-depth strategies to handle the unpredictability of LLMs and external APIs.
+
+### 1. Network & API Layer
+*   **Retry Logic**: `config.RETRY_CONFIG` is applied to every model call. It handles **HTTP 429 (Rate Limit)** and **5xx (Server Errors)** using exponential backoff (base 7, 5 attempts).
+*   **Resource Cleanup**: The `_execute_agent` method uses Python async context managers (`async with`) to ensure `InMemoryRunner` sessions are properly closed, preventing TCP connector leaks during long workflows.
+
+### 2. Parsing Layer
+*   **JSON Recovery**: As detailed above, the Orchestrator uses regex fallbacks to extract valid JSON even if the model "chatters" (adds conversational text).
+*   **Empty Response Detection**: If an agent returns no text (e.g., only tool outputs), the Orchestrator inspects the session history to recover the last generated content before raising an error.
+
+### 3. Application Layer
+*   **State Safety**: Transitions are guarded by `workflow_state.is_valid_transition`. An agent cannot arbitrarily jump from "Interview" to "Data Collection".
+*   **Global Exception Handling**: Every agent execution is wrapped in a `try/except` block. If an unrecoverable error occurs (e.g., Pydantic validation failure), the system transitions to `WorkflowState.ERROR` and returns the error message in the final result object, preventing a full crash.
+
+---
+
+## See Also
+
+- [System Architecture](./ARCHITECTURE.md)
+- [Project README](../README.md)

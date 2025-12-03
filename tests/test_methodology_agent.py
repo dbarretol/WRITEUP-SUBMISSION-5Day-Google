@@ -1,13 +1,13 @@
 """Unit tests for the Methodology Agent."""
 
 import pytest
-from academic_research.sub_agents.methodology import (
+from aida.sub_agents.methodology import (
     MethodologyAgent,
     create_methodology_agent,
     format_prompt_for_methodology
 )
-from academic_research.config import RETRY_CONFIG
-from academic_research.data_models import (
+from aida.config import RETRY_CONFIG
+from aida.data_models import (
     UserProfile,
     ProblemDefinition,
     ResearchObjectives,

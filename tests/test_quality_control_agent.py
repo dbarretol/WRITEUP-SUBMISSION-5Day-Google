@@ -1,13 +1,13 @@
 """Unit tests for the Quality-Control Agent."""
 
 import pytest
-from academic_research.sub_agents.quality_control import (
+from aida.sub_agents.quality_control import (
     QualityControlAgent,
     create_quality_control_agent,
     format_prompt_for_quality_control
 )
-from academic_research.config import RETRY_CONFIG
-from academic_research.data_models import (
+from aida.config import RETRY_CONFIG
+from aida.data_models import (
     UserProfile,
     ProblemDefinition,
     ResearchObjectives,

@@ -1,13 +1,13 @@
 """Unit tests for the Data-Collection Agent."""
 
 import pytest
-from academic_research.sub_agents.data_collection import (
+from aida.sub_agents.data_collection import (
     DataCollectionAgent,
     create_data_collection_agent,
     format_prompt_for_data_collection
 )
-from academic_research.config import RETRY_CONFIG
-from academic_research.data_models import (
+from aida.config import RETRY_CONFIG
+from aida.data_models import (
     UserProfile,
     ResearchObjectives,
     MethodologyRecommendation,

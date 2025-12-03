@@ -10,11 +10,11 @@ from dotenv import load_dotenv
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from academic_research.sub_agents.data_collection import (
+from aida.sub_agents.data_collection import (
     create_data_collection_agent,
     format_prompt_for_data_collection
 )
-from academic_research.data_models import (
+from aida.data_models import (
     UserProfile,
     ResearchObjectives,
     MethodologyRecommendation,
@@ -70,49 +70,48 @@ async def demo_data_collection_planning():
     # Create the agent
     agent = create_data_collection_agent(model="gemini-2.0-flash-lite")
     
-    # Create runner
-    runner = InMemoryRunner(agent=agent, app_name="data-collection-demo")
-    
-    # Create session
-    session = await runner.session_service.create_session(
-        app_name=runner.app_name,
-        user_id="demo_user"
-    )
-    
-    # Format the prompt
-    prompt = format_prompt_for_data_collection(
-        user_profile,
-        research_objectives,
-        methodology
-    )
-    
-    print("=" * 80)
-    print("DATA-COLLECTION AGENT DEMO")
-    print("=" * 80)
-    print("\nResearch Context:")
-    print(f"  Field: {user_profile.field_of_study}")
-    print(f"  Area: {user_profile.research_area}")
-    print(f"  Timeline: {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
-    print(f"  Methodology: {methodology.recommended_methodology}")
-    print(f"  Type: {methodology.methodology_type}")
-    
-    print("\n" + "=" * 80)
-    print("GENERATING DATA COLLECTION PLAN...")
-    print("=" * 80 + "\n")
-    
-    # Run the agent
-    content = types.Content(parts=[types.Part(text=prompt)])
-    
-    all_responses = []
-    async for event in runner.run_async(
-        user_id=session.user_id,
-        session_id=session.id,
-        new_message=content,
-    ):
-        if event.content.parts and event.content.parts[0].text:
-            part_text = event.content.parts[0].text
-            all_responses.append(part_text)
-            print(part_text)
+    # Create runner with context manager
+    async with InMemoryRunner(agent=agent, app_name="data-collection-demo") as runner:
+        # Create session
+        session = await runner.session_service.create_session(
+            app_name=runner.app_name,
+            user_id="demo_user"
+        )
+        
+        # Format the prompt
+        prompt = format_prompt_for_data_collection(
+            user_profile,
+            research_objectives,
+            methodology
+        )
+        
+        print("=" * 80)
+        print("DATA-COLLECTION AGENT DEMO")
+        print("=" * 80)
+        print("\nResearch Context:")
+        print(f"  Field: {user_profile.field_of_study}")
+        print(f"  Area: {user_profile.research_area}")
+        print(f"  Timeline: {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
+        print(f"  Methodology: {methodology.recommended_methodology}")
+        print(f"  Type: {methodology.methodology_type}")
+        
+        print("\n" + "=" * 80)
+        print("GENERATING DATA COLLECTION PLAN...")
+        print("=" * 80 + "\n")
+        
+        # Run the agent
+        content = types.Content(parts=[types.Part(text=prompt)])
+        
+        all_responses = []
+        async for event in runner.run_async(
+            user_id=session.user_id,
+            session_id=session.id,
+            new_message=content,
+        ):
+            if event.content.parts and event.content.parts[0].text:
+                part_text = event.content.parts[0].text
+                all_responses.append(part_text)
+                print(part_text)
     
     print("\n" + "=" * 80)
     print("DEMO COMPLETE")

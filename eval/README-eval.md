@@ -12,7 +12,7 @@ Before running any scripts, ensure your environment is set up correctly:
 1.  **Environment Variables**: Ensure a `.env` file exists in the project root containing your Google Cloud credentials:
     ```bash
     GOOGLE_API_KEY=your_api_key_here (optional)
-    GCP_PROJECT_ID==your_project_id
+    GCP_PROJECT_ID=your_project_id
     ```
 2.  **Dependencies**: The project must be installed with development dependencies.
     ```bash
@@ -89,7 +89,7 @@ Each agent output is strictly validated against these rules:
 
 ## ⚠️ Troubleshooting
 
-**`ModuleNotFoundError: No module named 'academic_research'`**
+**`ModuleNotFoundError: No module named 'aida'`**
 *   **Cause**: You are likely running the script from inside the `eval/` or `demos/` folder.
 *   **Fix**: Always run from the **project root**: `python eval/test_multi_agent_pipeline.py ...`.
 

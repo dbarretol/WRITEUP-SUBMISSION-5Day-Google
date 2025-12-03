@@ -1,7 +1,7 @@
 [project]
-name = "academic-research"
-version = "0.1.0"
-description = "An assistant that helps students craft a research proposal tailored to their specific conditions (constraints, skills, interests, etc.). It uses multiple specialized agents and an iterative refinement loop, including a preliminary literature review, to generate a high-quality proposal."
+name = "aida"
+version = "0.2.0"
+description = "Multi-agent research proposal assistant using Google ADK. Features 6 specialized agents (Problem Formulation, Literature Review, Objectives, Methodology, Data Collection, Quality Control) that collaborate to generate tailored academic research proposals with real literature search integration."
 authors = [{ name = "David Barreto Lara", email = "dbarretol@uni.pe" }]
 license = "Apache-2.0"
 readme = "README.md"
@@ -12,6 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "google-adk>=1.0.0",
     "streamlit>=1.51.0",
+    "reportlab>=4.0.0",
 ]
 
 requires-python = ">=3.10,<3.13"
@@ -61,7 +62,7 @@ select = [
 ignore = ["E501", "C901"] # ignore line too long, too complex
 
 [tool.ruff.lint.isort]
-known-first-party = ["academic_research"]
+known-first-party = ["aida"]
 
 [tool.mypy]
 disallow_untyped_calls = true
@@ -102,4 +103,4 @@ module-root = ""
 example_question = "Analyze the Attention is All You Need paper"
 
 [tool.agent-starter-pack.settings]
-agent_directory = "academic_research"
+agent_directory = "aida"

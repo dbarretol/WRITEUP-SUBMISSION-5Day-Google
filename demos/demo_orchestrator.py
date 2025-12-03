@@ -8,8 +8,8 @@ import json
 import logging
 from unittest.mock import MagicMock, AsyncMock
 
-from academic_research.orchestrator import ResearchProposalOrchestrator
-from academic_research.data_models import UserProfile, Timeline
+from aida.orchestrator import ResearchProposalOrchestrator
+from aida.data_models import UserProfile, Timeline
 
 # Configure logging to show orchestrator progress
 logging.basicConfig(

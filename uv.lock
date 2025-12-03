@@ -17,8 +17,27 @@ wheels = [
 ]
 
 [[package]]
-name = "academic-research"
-version = "0.1.0"
+name = "agent-starter-pack"
+version = "0.20.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backoff" },
+    { name = "click" },
+    { name = "cookiecutter" },
+    { name = "google-cloud-aiplatform" },
+    { name = "pyyaml" },
+    { name = "requests" },
+    { name = "rich" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/0a/b5a8c3aaf57f2f1b16a6a211ada6e4541977db685c470a97e506a9ac8566/agent_starter_pack-0.20.4.tar.gz", hash = "sha256:b60560a30023dd8916a28c5735d90d8c9f10045ed02edd9451f20c33ec9691db", size = 11629084, upload-time = "2025-11-12T21:32:58.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/af/7da52974c75996b62648f90deeb63a9d9a4337d1f8dbe86da69c15dd0c02/agent_starter_pack-0.20.4-py3-none-any.whl", hash = "sha256:9e205cf490f0402471680527060b66ee2d5386315a3dafa3c89411a47201de94", size = 3666138, upload-time = "2025-11-12T21:32:54.083Z" },
+]
+
+[[package]]
+name = "aida"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-adk" },
@@ -26,6 +45,7 @@ dependencies = [
     { name = "google-genai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "reportlab" },
     { name = "streamlit" },
 ]
 
@@ -63,6 +83,7 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.15.0" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "reportlab", specifier = ">=4.0.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.4.6" },
     { name = "streamlit", specifier = ">=1.51.0" },
     { name = "types-pyyaml", marker = "extra == 'lint'", specifier = ">=6.0.12.20240917" },
@@ -82,25 +103,6 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.23.7" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "tabulate", specifier = ">=0.9.0" },
-]
-
-[[package]]
-name = "agent-starter-pack"
-version = "0.20.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "backoff" },
-    { name = "click" },
-    { name = "cookiecutter" },
-    { name = "google-cloud-aiplatform" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "rich" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/83/0a/b5a8c3aaf57f2f1b16a6a211ada6e4541977db685c470a97e506a9ac8566/agent_starter_pack-0.20.4.tar.gz", hash = "sha256:b60560a30023dd8916a28c5735d90d8c9f10045ed02edd9451f20c33ec9691db", size = 11629084, upload-time = "2025-11-12T21:32:58.022Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/af/7da52974c75996b62648f90deeb63a9d9a4337d1f8dbe86da69c15dd0c02/agent_starter_pack-0.20.4-py3-none-any.whl", hash = "sha256:9e205cf490f0402471680527060b66ee2d5386315a3dafa3c89411a47201de94", size = 3666138, upload-time = "2025-11-12T21:32:54.083Z" },
 ]
 
 [[package]]
@@ -2765,6 +2767,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/79/5d/cdd13b1f3c53afa7191593a7ad2ee24092a5a46417725ffff7f64be8342d/regex-2025.9.18-cp312-cp312-win32.whl", hash = "sha256:e1dd06f981eb226edf87c55d523131ade7285137fbde837c34dc9d1bf309f459", size = 264536, upload-time = "2025-09-19T00:36:21.922Z" },
     { url = "https://files.pythonhosted.org/packages/e0/f5/4a7770c9a522e7d2dc1fa3ffc83ab2ab33b0b22b447e62cffef186805302/regex-2025.9.18-cp312-cp312-win_amd64.whl", hash = "sha256:3d86b5247bf25fa3715e385aa9ff272c307e0636ce0c9595f64568b41f0a9c77", size = 275501, upload-time = "2025-09-19T00:36:23.4Z" },
     { url = "https://files.pythonhosted.org/packages/df/05/9ce3e110e70d225ecbed455b966003a3afda5e58e8aec2964042363a18f4/regex-2025.9.18-cp312-cp312-win_arm64.whl", hash = "sha256:032720248cbeeae6444c269b78cb15664458b7bb9ed02401d3da59fe4d68c3a5", size = 268601, upload-time = "2025-09-19T00:36:25.092Z" },
+]
+
+[[package]]
+name = "reportlab"
+version = "4.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "charset-normalizer" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/80/dfa85941e3c3800aa5cd2f940c1903358c1fb61149f5f91b62efa61e7d03/reportlab-4.4.5.tar.gz", hash = "sha256:0457d642aa76df7b36b0235349904c58d8f9c606a872456ed04436aafadc1510", size = 3910836, upload-time = "2025-11-18T11:43:10.242Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/16/0c26a7bdfd20cba49a011b1095461be120c53df3926e9843fccfb9530e72/reportlab-4.4.5-py3-none-any.whl", hash = "sha256:849773d7cd5dde2072fedbac18c8bc909506c8befba8f088ba7b09243c6684cc", size = 1954256, upload-time = "2025-11-17T12:03:05.214Z" },
 ]
 
 [[package]]

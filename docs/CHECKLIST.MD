@@ -20,7 +20,7 @@ You must choose **ONE** track:
 
 * [ ] Concierge Agents
 * [ ] Enterprise Agents
-* [x] Agents for Good
+* [ ] Agents for Good
 * [ ] Freestyle
 
 ---
@@ -57,16 +57,16 @@ Your agent must use **at least 3 of these features** (check the ones you include
 
 #### **Multi-Agent System (pick any that apply)**
 
-* [x] LLM-powered agents
+* [ ] LLM-powered agents
 * [ ] Parallel agents
-* [x] Sequential agents
-* [x] Loop agents (you already use refinement loops)
+* [ ] Sequential agents
+* [ ] Loop agents (you already use refinement loops)
 
 #### **Tools**
 
 * [ ] MCP tools
 * [ ] Custom tools
-* [x] Built-in tools (Google Search, Code Execution, etc.)
+* [ ] Built-in tools (Google Search, Code Execution, etc.)
 * [ ] OpenAPI tools
 
 #### **Long-running operations**
@@ -75,19 +75,19 @@ Your agent must use **at least 3 of these features** (check the ones you include
 
 #### **Sessions & Memory**
 
-* [x] Session state (e.g., InMemorySessionService)
+* [ ] Session state (e.g., InMemorySessionService)
 * [ ] Long-term memory (Memory Bank)
-* [x] Context engineering (context compaction, etc.)
+* [ ] Context engineering (context compaction, etc.)
 
 #### **Observability**
 
-* [x] Logging
+* [ ] Logging
 * [ ] Tracing
 * [ ] Metrics
 
 #### **Agent evaluation**
 
-* [x] Automated evaluation or debugging infrastructure
+* [ ] Automated evaluation or debugging infrastructure
 
 #### **A2A Protocol**
 
@@ -101,9 +101,9 @@ Your agent must use **at least 3 of these features** (check the ones you include
 
 * [ ] Code is publicly accessible (GitHub or Kaggle Notebook)
 * [ ] Code is well structured
-* [x] Contains **comments** about design, architecture, and behaviors
-* [x] Uses clean architecture
-* [x] No API keys or passwords included
+* [ ] Contains **comments** about design, architecture, and behaviors
+* [ ] Uses clean architecture
+* [ ] No API keys or passwords included
 
 ---
 
@@ -111,13 +111,13 @@ Your agent must use **at least 3 of these features** (check the ones you include
 
 ### Your submission must include:
 
-* [x] README.md (if using GitHub) **OR** detailed Markdown cells (if using Kaggle/Colab)
+* [ ] README.md (if using GitHub) **OR** detailed Markdown cells (if using Kaggle/Colab)
 * [ ] Problem description
 * [ ] Solution explanation
 * [ ] Agent architecture diagram
-* [x] Setup instructions
-* [x] Dependencies and environment instructions
-* [x] How to run the system locally
+* [ ] Setup instructions
+* [ ] Dependencies and environment instructions
+* [ ] How to run the system locally
 
 ---
 
@@ -125,7 +125,7 @@ Your agent must use **at least 3 of these features** (check the ones you include
 
 ### Effective Use of Gemini (5 pts)
 
-* [x] At least one agent uses a Gemini model
+* [ ] At least one agent uses a Gemini model
 
 ### Agent Deployment (5 pts)
 
@@ -172,10 +172,10 @@ Your Kaggle submission must include:
 
 # 🚨 **8. Additional Checks**
 
-* [x] No API keys or passwords in code
-* [x] Code runs without crashing
-* [x] Reproducible environment
-* [x] Clear demonstration of agent capabilities
+* [ ] No API keys or passwords in code
+* [ ] Code runs without crashing
+* [ ] Reproducible environment
+* [ ] Clear demonstration of agent capabilities
 * [ ] Meets deadline: **Dec 1, 2025, 11:59 AM PT**
 
 ---

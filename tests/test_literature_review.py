@@ -3,7 +3,7 @@
 import asyncio
 from google.genai import types
 from google.adk.runners import InMemoryRunner
-from academic_research.sub_agents.literature_review import (
+from aida.sub_agents.literature_review import (
     create_literature_review_agent,
     format_prompt_for_literature_review
 )
@@ -16,7 +16,6 @@ async def test_literature_review_agent():
     
     # Create the agent
     agent = create_literature_review_agent()
-    runner = InMemoryRunner(agent=agent, app_name="lit-review-test")
     
     # Create a test prompt
     prompt = format_prompt_for_literature_review(
@@ -35,31 +34,33 @@ async def test_literature_review_agent():
     # Track tool calls
     tool_calls = []
     
-    # Create session
-    session = await runner.session_service.create_session(
-        app_name="lit-review-test",
-        user_id="test_user"
-    )
-    
-    # Run agent
-    async for event in runner.run_async(
-        user_id=session.user_id,
-        session_id=session.id,
-        new_message=content
-    ):
-        # Track intermediate tool uses if available
-        if hasattr(event, 'intermediate_data') and event.intermediate_data:
-            if hasattr(event.intermediate_data, 'tool_uses'):
-                for tool_use in event.intermediate_data.tool_uses:
-                    tool_name = tool_use.function_call.name if hasattr(tool_use, 'function_call') else 'unknown'
-                    tool_calls.append(tool_name)
-                    print(f"\n🔧 Tool Called: {tool_name}")
+    # Use context manager for runner
+    async with InMemoryRunner(agent=agent, app_name="lit-review-test") as runner:
+        # Create session
+        session = await runner.session_service.create_session(
+            app_name="lit-review-test",
+            user_id="test_user"
+        )
         
-        # Print final response
-        if event.is_final_response() and event.content:
-            for part in event.content.parts:
-                if part.text:
-                    print(f"\n✅ Response:\n{part.text[:500]}...")
+        # Run agent
+        async for event in runner.run_async(
+            user_id=session.user_id,
+            session_id=session.id,
+            new_message=content
+        ):
+            # Track intermediate tool uses if available
+            if hasattr(event, 'intermediate_data') and event.intermediate_data:
+                if hasattr(event.intermediate_data, 'tool_uses'):
+                    for tool_use in event.intermediate_data.tool_uses:
+                        tool_name = tool_use.function_call.name if hasattr(tool_use, 'function_call') else 'unknown'
+                        tool_calls.append(tool_name)
+                        print(f"\n🔧 Tool Called: {tool_name}")
+            
+            # Print final response
+            if event.is_final_response() and event.content:
+                for part in event.content.parts:
+                    if part.text:
+                        print(f"\n✅ Response:\n{part.text[:500]}...")
     
     print("\n" + "="*80)
     print(f"📊 SUMMARY:")

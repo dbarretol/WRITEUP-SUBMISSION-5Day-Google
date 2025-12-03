@@ -2,13 +2,13 @@
 
 import pytest
 from google.adk.tools import AgentTool
-from academic_research.sub_agents.problem_formulation import (
+from aida.sub_agents.problem_formulation import (
     ProblemFormulationAgent,
     create_problem_formulation_agent,
     format_prompt_for_user_profile
 )
-from academic_research.config import RETRY_CONFIG
-from academic_research.data_models import UserProfile, ProblemDefinition, Timeline
+from aida.config import RETRY_CONFIG
+from aida.data_models import UserProfile, ProblemDefinition, Timeline
 
 @pytest.fixture
 def agent():

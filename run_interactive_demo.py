@@ -9,19 +9,19 @@ load_dotenv()
 sys.path.insert(0, ".")
 
 # Import your Specific Class
-from academic_research.sub_agents.interviewer.agent import InterviewerAgent
-from academic_research.data_models import InterviewState, UserProfile, Timeline
-from academic_research.config import DEFAULT_MODEL
+from aida.sub_agents.interviewer.agent import InterviewerAgent
+from aida.data_models import InterviewState, UserProfile, Timeline
+from aida.config import DEFAULT_MODEL
 
 # Import other agents (Factory functions for the backend workers)
-from academic_research.sub_agents.problem_formulation import create_problem_formulation_agent
-from academic_research.sub_agents.objectives import create_objectives_agent
-from academic_research.sub_agents.methodology import create_methodology_agent
-from academic_research.sub_agents.data_collection import create_data_collection_agent
-from academic_research.sub_agents.quality_control import create_quality_control_agent
+from aida.sub_agents.problem_formulation import create_problem_formulation_agent
+from aida.sub_agents.objectives import create_objectives_agent
+from aida.sub_agents.methodology import create_methodology_agent
+from aida.sub_agents.data_collection import create_data_collection_agent
+from aida.sub_agents.quality_control import create_quality_control_agent
 
 # Import Orchestrator
-from academic_research.orchestrator import ResearchProposalOrchestrator
+from aida.orchestrator import ResearchProposalOrchestrator
 from google.adk.runners import InMemoryRunner
 
 def print_agent(text):

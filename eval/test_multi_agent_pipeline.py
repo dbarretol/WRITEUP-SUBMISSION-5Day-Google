@@ -22,24 +22,24 @@ from dotenv import load_dotenv
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from academic_research.data_models import UserProfile, Timeline
-from academic_research.sub_agents.problem_formulation import (
+from aida.data_models import UserProfile, Timeline
+from aida.sub_agents.problem_formulation import (
     create_problem_formulation_agent,
     format_prompt_for_user_profile
 )
-from academic_research.sub_agents.objectives import (
+from aida.sub_agents.objectives import (
     create_objectives_agent,
     format_prompt_for_objectives
 )
-from academic_research.sub_agents.methodology import (
+from aida.sub_agents.methodology import (
     create_methodology_agent,
     format_prompt_for_methodology
 )
-from academic_research.sub_agents.data_collection import (
+from aida.sub_agents.data_collection import (
     create_data_collection_agent,
     format_prompt_for_data_collection
 )
-from academic_research.sub_agents.quality_control import (
+from aida.sub_agents.quality_control import (
     create_quality_control_agent,
     format_prompt_for_quality_control
 )
@@ -344,31 +344,31 @@ async def run_full_pipeline(
         print("🔬 Stage 1/5: Problem Formulation...")
         
         problem_agent = create_problem_formulation_agent(model=model)
-        problem_runner = InMemoryRunner(agent=problem_agent, app_name=f"eval-{scenario_name}-problem")
-        problem_session = await problem_runner.session_service.create_session(
-            app_name=f"eval-{scenario_name}-problem",
-            user_id="eval_user"
-        )
-        
-        problem_prompt = format_prompt_for_user_profile(user_profile)
-        problem_content = types.Content(parts=[types.Part(text=problem_prompt)])
-        
-        problem_response = ""
-        
-        # --- FIXED LOOP START ---
-        async for event in problem_runner.run_async(
-            user_id=problem_session.user_id,
-            session_id=problem_session.id,
-            new_message=problem_content
-        ):
-            # We iterate through every event.
-            # If the event has text, we capture it. 
-            # We verify part.text is not None and not empty.
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, 'text') and part.text and part.text.strip():
-                        problem_response = part.text
-        # --- FIXED LOOP END ---
+        async with InMemoryRunner(agent=problem_agent, app_name=f"eval-{scenario_name}-problem") as problem_runner:
+            problem_session = await problem_runner.session_service.create_session(
+                app_name=f"eval-{scenario_name}-problem",
+                user_id="eval_user"
+            )
+            
+            problem_prompt = format_prompt_for_user_profile(user_profile)
+            problem_content = types.Content(parts=[types.Part(text=problem_prompt)])
+            
+            problem_response = ""
+            
+            # --- FIXED LOOP START ---
+            async for event in problem_runner.run_async(
+                user_id=problem_session.user_id,
+                session_id=problem_session.id,
+                new_message=problem_content
+            ):
+                # We iterate through every event.
+                # If the event has text, we capture it. 
+                # We verify part.text is not None and not empty.
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text and part.text.strip():
+                            problem_response = part.text
+            # --- FIXED LOOP END ---
         
         # If we didn't get a final response with text, log what we got
         if not problem_response:
@@ -377,7 +377,15 @@ async def run_full_pipeline(
         
         problem_response = _clean_json_response(problem_response)
 
-        problem_def = json.loads(problem_response)
+        try:
+            problem_def = json.loads(problem_response)
+        except json.JSONDecodeError as e:
+            print(f"  ❌ JSON Parse Error: {e}")
+            print(f"  📄 Raw response (first 500 chars):")
+            print(f"  {problem_response[:500]}")
+            print(f"  💡 Tip: The LLM generated malformed JSON. Try running again or use a more reliable model.")
+            raise
+        
         results["agent_outputs"]["problem_formulation"] = problem_def
         results["validations"]["problem_formulation"] = validator.validate_problem_definition(problem_def)
         
@@ -389,29 +397,29 @@ async def run_full_pipeline(
         # ====================================================================
         print("\n🎯 Stage 2/5: Objectives...")
         
-        from academic_research.data_models import ProblemDefinition
+        from aida.data_models import ProblemDefinition
         problem_obj = ProblemDefinition(**problem_def)
         
         objectives_agent = create_objectives_agent(model=model)
-        objectives_runner = InMemoryRunner(agent=objectives_agent, app_name=f"eval-{scenario_name}-objectives")
-        objectives_session = await objectives_runner.session_service.create_session(
-            app_name=f"eval-{scenario_name}-objectives",
-            user_id="eval_user"
-        )
-        
-        objectives_prompt = format_prompt_for_objectives(user_profile, problem_obj)
-        objectives_content = types.Content(parts=[types.Part(text=objectives_prompt)])
-        
-        objectives_response = ""
-        async for event in objectives_runner.run_async(
-            user_id=objectives_session.user_id,
-            session_id=objectives_session.id,
-            new_message=objectives_content
-        ):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, 'text') and part.text:
-                        objectives_response = part.text
+        async with InMemoryRunner(agent=objectives_agent, app_name=f"eval-{scenario_name}-objectives") as objectives_runner:
+            objectives_session = await objectives_runner.session_service.create_session(
+                app_name=f"eval-{scenario_name}-objectives",
+                user_id="eval_user"
+            )
+            
+            objectives_prompt = format_prompt_for_objectives(user_profile, problem_obj)
+            objectives_content = types.Content(parts=[types.Part(text=objectives_prompt)])
+            
+            objectives_response = ""
+            async for event in objectives_runner.run_async(
+                user_id=objectives_session.user_id,
+                session_id=objectives_session.id,
+                new_message=objectives_content
+            ):
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            objectives_response = part.text
         
         objectives_response = _clean_json_response(objectives_response)
         objectives_output = json.loads(objectives_response)
@@ -425,29 +433,29 @@ async def run_full_pipeline(
         # ====================================================================
         print("\n📊 Stage 3/5: Methodology...")
         
-        from academic_research.data_models import ResearchObjectives
+        from aida.data_models import ResearchObjectives
         objectives_obj = ResearchObjectives(**objectives_output)
         
         methodology_agent = create_methodology_agent(model=model)
-        methodology_runner = InMemoryRunner(agent=methodology_agent, app_name=f"eval-{scenario_name}-methodology")
-        methodology_session = await methodology_runner.session_service.create_session(
-            app_name=f"eval-{scenario_name}-methodology",
-            user_id="eval_user"
-        )
-        
-        methodology_prompt = format_prompt_for_methodology(user_profile, problem_obj, objectives_obj)
-        methodology_content = types.Content(parts=[types.Part(text=methodology_prompt)])
-        
-        methodology_response = ""
-        async for event in methodology_runner.run_async(
-            user_id=methodology_session.user_id,
-            session_id=methodology_session.id,
-            new_message=methodology_content
-        ):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, 'text') and part.text:
-                        methodology_response = part.text
+        async with InMemoryRunner(agent=methodology_agent, app_name=f"eval-{scenario_name}-methodology") as methodology_runner:
+            methodology_session = await methodology_runner.session_service.create_session(
+                app_name=f"eval-{scenario_name}-methodology",
+                user_id="eval_user"
+            )
+            
+            methodology_prompt = format_prompt_for_methodology(user_profile, problem_obj, objectives_obj)
+            methodology_content = types.Content(parts=[types.Part(text=methodology_prompt)])
+            
+            methodology_response = ""
+            async for event in methodology_runner.run_async(
+                user_id=methodology_session.user_id,
+                session_id=methodology_session.id,
+                new_message=methodology_content
+            ):
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            methodology_response = part.text
         
         methodology_response = _clean_json_response(methodology_response)
         methodology_output = json.loads(methodology_response)
@@ -461,29 +469,29 @@ async def run_full_pipeline(
         # ====================================================================
         print("\n📁 Stage 4/5: Data Collection...")
         
-        from academic_research.data_models import MethodologyRecommendation
+        from aida.data_models import MethodologyRecommendation
         methodology_obj = MethodologyRecommendation(**methodology_output)
         
         data_agent = create_data_collection_agent(model=model)
-        data_runner = InMemoryRunner(agent=data_agent, app_name=f"eval-{scenario_name}-data")
-        data_session = await data_runner.session_service.create_session(
-            app_name=f"eval-{scenario_name}-data",
-            user_id="eval_user"
-        )
-        
-        data_prompt = format_prompt_for_data_collection(user_profile, objectives_obj, methodology_obj)
-        data_content = types.Content(parts=[types.Part(text=data_prompt)])
-        
-        data_response = ""
-        async for event in data_runner.run_async(
-            user_id=data_session.user_id,
-            session_id=data_session.id,
-            new_message=data_content
-        ):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, 'text') and part.text:
-                        data_response = part.text
+        async with InMemoryRunner(agent=data_agent, app_name=f"eval-{scenario_name}-data") as data_runner:
+            data_session = await data_runner.session_service.create_session(
+                app_name=f"eval-{scenario_name}-data",
+                user_id="eval_user"
+            )
+            
+            data_prompt = format_prompt_for_data_collection(user_profile, objectives_obj, methodology_obj)
+            data_content = types.Content(parts=[types.Part(text=data_prompt)])
+            
+            data_response = ""
+            async for event in data_runner.run_async(
+                user_id=data_session.user_id,
+                session_id=data_session.id,
+                new_message=data_content
+            ):
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            data_response = part.text
         
         data_response = _clean_json_response(data_response)
         data_output = json.loads(data_response)
@@ -497,31 +505,31 @@ async def run_full_pipeline(
         # ====================================================================
         print("\n✅ Stage 5/5: Quality Control...")
         
-        from academic_research.data_models import DataCollectionPlan
+        from aida.data_models import DataCollectionPlan
         data_obj = DataCollectionPlan(**data_output)
         
         quality_agent = create_quality_control_agent(model=model)
-        quality_runner = InMemoryRunner(agent=quality_agent, app_name=f"eval-{scenario_name}-quality")
-        quality_session = await quality_runner.session_service.create_session(
-            app_name=f"eval-{scenario_name}-quality",
-            user_id="eval_user"
-        )
-        
-        quality_prompt = format_prompt_for_quality_control(
-            user_profile, problem_obj, objectives_obj, methodology_obj, data_obj
-        )
-        quality_content = types.Content(parts=[types.Part(text=quality_prompt)])
-        
-        quality_response = ""
-        async for event in quality_runner.run_async(
-            user_id=quality_session.user_id,
-            session_id=quality_session.id,
-            new_message=quality_content
-        ):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, 'text') and part.text:
-                        quality_response = part.text
+        async with InMemoryRunner(agent=quality_agent, app_name=f"eval-{scenario_name}-quality") as quality_runner:
+            quality_session = await quality_runner.session_service.create_session(
+                app_name=f"eval-{scenario_name}-quality",
+                user_id="eval_user"
+            )
+            
+            quality_prompt = format_prompt_for_quality_control(
+                user_profile, problem_obj, objectives_obj, methodology_obj, data_obj
+            )
+            quality_content = types.Content(parts=[types.Part(text=quality_prompt)])
+            
+            quality_response = ""
+            async for event in quality_runner.run_async(
+                user_id=quality_session.user_id,
+                session_id=quality_session.id,
+                new_message=quality_content
+            ):
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            quality_response = part.text
         
         quality_response = _clean_json_response(quality_response)
         quality_output = json.loads(quality_response)

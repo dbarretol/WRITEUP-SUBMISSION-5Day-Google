@@ -6,11 +6,11 @@ This directory contains the configuration to deploy the Multi-Agent Academic Res
 
 1.  **Google Cloud Project**: Active GCP project with billing enabled.
 
-```sh
+```bash
 # Useful commands
-gcloud projects list    #List all the projects
-gcloud config get-value project #Get the current project
-gcloud config set project YOUR_PROJECT_ID #Set the current project
+gcloud projects list             # List all projects
+gcloud config get-value project  # Get current project
+gcloud config set project YOUR_PROJECT_ID  # Set current project
 ```
 
 2.  **Google Cloud SDK**: `gcloud` CLI installed and authenticated.
@@ -18,18 +18,20 @@ gcloud config set project YOUR_PROJECT_ID #Set the current project
     *   Cloud Run API
     *   Cloud Build API
     *   Vertex AI API
-    *   Cloud Storage API
+    *   Artifact Registry (or Container Registry) API
 
 ## ⚠️ Critical IAM Permissions
 
-Your Cloud Run service uses a "Service Account" to run (usually the default Compute Engine account). **This account needs permissions to call Vertex AI.**
+Your Cloud Run service uses a "Service Account" to run (by default, the **Compute Engine default service account**).
 
-After deployment, if you see "403 Forbidden" or "Permission Denied" errors in the logs:
+**This account needs permissions to call Vertex AI models (Gemini).** Without this, the application will crash when attempting to generate content.
 
-1.  Go to **Cloud Run** console > Select your service.
-2.  Check the **Security** tab to see which Service Account is being used.
+**If you see "403 Forbidden" or "Permission Denied" errors in the logs:**
+
+1.  Go to the **Cloud Run** console > Select your service.
+2.  Check the **Security** tab to identify the Service Account email.
 3.  Go to **IAM & Admin**.
-4.  Grant that Service Account the **Vertex AI User** role.
+4.  Find that email and grant it the **Vertex AI User** role (`roles/aiplatform.user`).
 
 Also, you will need:
 
@@ -38,7 +40,7 @@ Also, you will need:
 * Service Account User - to deploy as a service account
 * Storage Admin - for the build artifacts bucket
 
-> IMPORTANT!: Check the [pre-flight checklist](PRE-FLIGHT-CHECKLIST.md) before running the deployment script.
+> **IMPORTANT**: Review the [Pre-Flight Checklist](PRE-FLIGHT-CHECKLIST.md) before running the deployment script to prevent common build failures.
 
 ## How to Deploy
 
@@ -62,25 +64,28 @@ Then run it:
 ./deployment/deploy.sh -p "your-project-id"
 ```
 
-### Parameters:
-*   `-ProjectId` / `-p`: Your Google Cloud Project ID (Required).
-*   `-Region` / `-r`: (Optional) GCP Region (default: `us-central1`).
-*   `-ServiceName` / `-s`: (Optional) Name of the Cloud Run service (default: `aida-research-agent`).
+### Script Parameters
+*   `-ProjectId` / `-p`: Your Google Cloud Project ID (**Required**).
+*   `-Region` / `-r`: GCP Region (Optional, default: `us-central1`).
+*   `-ServiceName` / `-s`: Name of the Cloud Run service (Optional, default: `aida-research-agent`).
 
-## Files
+## Files Description
 
-*   **`.dockerignore`**: Crucial file. Ensures local virtual environments (`.venv`) are not copied to the container.
-*   **`Dockerfile`**: Defines the container image. It uses a lightweight Python 3.10 slim image, installs `uv`, and runs the Streamlit app on port 8080.
-*   **`deploy.ps1`**: PowerShell script to automate the build and deploy process.
-*   **`deploy.sh`**: Bash script to automate the build and deploy process.
+*   **`cloudbuild.yaml`**: Configuration for Cloud Build. It instructs Google Cloud how to build the Docker container using `deployment/Dockerfile`.
+*   **`.dockerignore`**: **Crucial file.** Ensures local virtual environments (`.venv`), API keys, and temporary files are not uploaded to the build server.
+*   **`Dockerfile`**: Defines the container image. It uses a secure Python 3.10 slim image, installs `uv` for fast dependency management, creates a non-root user, and runs the Streamlit app.
+*   **`deploy.ps1`**: PowerShell automation script for Windows users.
+*   **`deploy.sh`**: Bash automation script for Linux/Mac users.
 
 ## Manual Deployment Steps
 
-If you prefer to run commands manually:
+If you prefer to run commands manually without the scripts:
 
-1.  **Build the image**:
+1.  **Build the Container Image**:
     ```bash
-    gcloud builds submit --config deployment/cloudbuild.yaml --substitutions=_IMAGE_NAME=gcr.io/YOUR_PROJECT_ID/aida-research-agent .
+    # Replace YOUR_PROJECT_ID
+    gcloud builds submit --config deployment/cloudbuild.yaml \
+        --substitutions=_IMAGE_NAME=gcr.io/YOUR_PROJECT_ID/aida-research-agent .
     ```
 
 2.  **Deploy to Cloud Run**:
@@ -97,29 +102,19 @@ If you prefer to run commands manually:
 ## Troubleshooting
 
 ### Media File Storage Errors (404 on /media/...)
-
 You may see warnings in Cloud Run logs like:
-```
-MediaFileStorageError: Bad filename '...' (No media file with id '...')
-```
+`MediaFileStorageError: Bad filename ... (No media file with id ...)`
 
-**This is expected behavior** and not a critical error. It occurs because:
-- Streamlit stores download buttons in memory
-- Cloud Run can scale to zero and restart containers
-- When containers restart, the in-memory media files are lost
+*   **Cause**: Streamlit stores generated files in memory. Cloud Run is "serverless" and may restart containers or scale to zero when idle. When a container restarts, in-memory files are lost.
+*   **Impact**: Non-critical. If a user tries to download a file after a container restart, they may need to regenerate the proposal.
 
-**Impact**: Users may need to regenerate their proposal if the container restarts between generation and download. The app will continue to work normally.
+### Permission Errors (`/home/appuser`)
+If you see `PermissionError: [Errno 13] Permission denied: '/home/appuser'`, ensure you are using the latest `Dockerfile` provided in this repo. It specifically handles permissions by:
+1.  Creating a user `appuser`.
+2.  Setting `STREAMLIT_CONFIG_DIR` to `/tmp`.
+3.  Running `chown -R appuser:appuser` on the application directory.
 
-### Permission Errors
-
-If you see `PermissionError: [Errno 13] Permission denied: '/home/appuser'`, ensure you're using the latest Dockerfile which:
-- Creates the appuser home directory with `-m -d /home/appuser`
-- Sets `STREAMLIT_CONFIG_DIR=/tmp/.streamlit`
-- Runs `chown -R appuser:appuser /app /home/appuser`
-
-### Vertex AI Permission Errors
-
-If you see 403 errors when calling Vertex AI:
-1. Go to Cloud Run console → Select your service
-2. Check the **Security** tab for the Service Account being used
-3. Go to **IAM & Admin** → Grant that Service Account the **Vertex AI User** role
+### Build Fails on "Uploading..."
+If `gcloud builds submit` takes a very long time or fails during the upload step:
+*   **Check `.dockerignore`**: Ensure you have a `.dockerignore` file in the root directory.
+*   **Verify Content**: Make sure `.venv`, `venv`, or `.git` are listed in `.dockerignore`. Uploading a local virtual environment is the #1 cause of build timeouts.

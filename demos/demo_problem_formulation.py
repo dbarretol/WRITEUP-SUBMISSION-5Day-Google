@@ -10,11 +10,11 @@ from dotenv import load_dotenv
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from academic_research.sub_agents.problem_formulation import (
+from aida.sub_agents.problem_formulation import (
     create_problem_formulation_agent,
     format_prompt_for_user_profile
 )
-from academic_research.data_models import UserProfile, Timeline
+from aida.data_models import UserProfile, Timeline
 
 # Load environment variables
 load_dotenv()
@@ -39,46 +39,45 @@ async def demo_problem_formulation():
     # Create the agent
     agent = create_problem_formulation_agent(model="gemini-2.0-flash-lite")
     
-    # Create runner
-    runner = InMemoryRunner(agent=agent, app_name="problem-formulation-demo")
-    
-    # Create session
-    session = await runner.session_service.create_session(
-        app_name=runner.app_name,
-        user_id="demo_user"
-    )
-    
-    # Format the initial prompt with user profile
-    initial_prompt = format_prompt_for_user_profile(user_profile)
-    
-    print("=" * 80)
-    print("PROBLEM-FORMULATION AGENT DEMO")
-    print("=" * 80)
-    print("\nUser Profile:")
-    print(f"  Program: {user_profile.academic_program}")
-    print(f"  Field: {user_profile.field_of_study}")
-    print(f"  Research Area: {user_profile.research_area}")
-    print(f"  Time Available: {user_profile.weekly_hours} hrs/week for {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
-    print(f"  Skills: {', '.join(user_profile.existing_skills)}")
-    print(f"  To Learn: {', '.join(user_profile.missing_skills)}")
-    print(f"  Constraints: {', '.join(user_profile.constraints)}")
-    print("\n" + "=" * 80)
-    print("GENERATING PROBLEM DEFINITION...")
-    print("=" * 80 + "\n")
-    
-    # Run the agent
-    content = types.Content(parts=[types.Part(text=initial_prompt)])
-    
-    all_responses = []
-    async for event in runner.run_async(
-        user_id=session.user_id,
-        session_id=session.id,
-        new_message=content,
-    ):
-        if event.content.parts and event.content.parts[0].text:
-            part_text = event.content.parts[0].text
-            all_responses.append(part_text)
-            print(part_text)
+    # Create runner with context manager for proper cleanup
+    async with InMemoryRunner(agent=agent, app_name="problem-formulation-demo") as runner:
+        # Create session
+        session = await runner.session_service.create_session(
+            app_name=runner.app_name,
+            user_id="demo_user"
+        )
+        
+        # Format the initial prompt with user profile
+        initial_prompt = format_prompt_for_user_profile(user_profile)
+        
+        print("=" * 80)
+        print("PROBLEM-FORMULATION AGENT DEMO")
+        print("=" * 80)
+        print("\nUser Profile:")
+        print(f"  Program: {user_profile.academic_program}")
+        print(f"  Field: {user_profile.field_of_study}")
+        print(f"  Research Area: {user_profile.research_area}")
+        print(f"  Time Available: {user_profile.weekly_hours} hrs/week for {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
+        print(f"  Skills: {', '.join(user_profile.existing_skills)}")
+        print(f"  To Learn: {', '.join(user_profile.missing_skills)}")
+        print(f"  Constraints: {', '.join(user_profile.constraints)}")
+        print("\n" + "=" * 80)
+        print("GENERATING PROBLEM DEFINITION...")
+        print("=" * 80 + "\n")
+        
+        # Run the agent
+        content = types.Content(parts=[types.Part(text=initial_prompt)])
+        
+        all_responses = []
+        async for event in runner.run_async(
+            user_id=session.user_id,
+            session_id=session.id,
+            new_message=content,
+        ):
+            if event.content.parts and event.content.parts[0].text:
+                part_text = event.content.parts[0].text
+                all_responses.append(part_text)
+                print(part_text)
     
     print("\n" + "=" * 80)
     print("DEMO COMPLETE")

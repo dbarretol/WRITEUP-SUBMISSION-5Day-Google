@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import json
-from academic_research.sub_agents.interviewer import InterviewerAgent
-from academic_research.data_models import InterviewState
+from aida.sub_agents.interviewer import InterviewerAgent
+from aida.data_models import InterviewState
 
 @pytest.fixture
 def agent():

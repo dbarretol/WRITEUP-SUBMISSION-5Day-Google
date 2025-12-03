@@ -222,7 +222,7 @@ python demos/demo_quality_control.py
 
 ## Troubleshooting
 
-### Issue: `ModuleNotFoundError: No module named 'academic_research'`
+### Issue: `ModuleNotFoundError: No module named 'aida'`
 
 **Solution**: Make sure you're running from the project root and the virtual environment is activated:
 

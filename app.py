@@ -10,27 +10,41 @@ This app provides a user-friendly interface for:
 import asyncio
 import json
 import sys
+import time
+import platform
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 
 import streamlit as st
 from dotenv import load_dotenv
+from reportlab.lib.pagesizes import letter, A4
+
+# Fix for Windows Event Loop Policy
+if platform.system() == 'Windows':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, ListFlowable, ListItem
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
+from io import BytesIO
 
 # Setup environment
 load_dotenv()
 sys.path.insert(0, ".")
 
 # Import system components
-from academic_research.sub_agents.interviewer.agent import InterviewerAgent
-from academic_research.data_models import InterviewState, UserProfile, Timeline
-from academic_research.config import DEFAULT_MODEL
-from academic_research.sub_agents.problem_formulation import create_problem_formulation_agent
-from academic_research.sub_agents.objectives import create_objectives_agent
-from academic_research.sub_agents.methodology import create_methodology_agent
-from academic_research.sub_agents.data_collection import create_data_collection_agent
-from academic_research.sub_agents.quality_control import create_quality_control_agent
-from academic_research.orchestrator import ResearchProposalOrchestrator
+from aida.sub_agents.interviewer.agent import InterviewerAgent
+from aida.data_models import InterviewState, UserProfile, Timeline
+from aida.config import DEFAULT_MODEL
+from aida.sub_agents.problem_formulation import create_problem_formulation_agent
+from aida.sub_agents.objectives import create_objectives_agent
+from aida.sub_agents.methodology import create_methodology_agent
+from aida.sub_agents.data_collection import create_data_collection_agent
+from aida.sub_agents.quality_control import create_quality_control_agent
+from aida.orchestrator import ResearchProposalOrchestrator
+from aida.pdf_generator import generate_pdf_proposal
 from google.adk.runners import InMemoryRunner
 
 
@@ -266,9 +280,9 @@ def show_welcome():
     
     This tool will help you create a comprehensive research proposal through:
     
-    1. **Interactive Interview** - Answer 8 questions about your research interests
-    2. **AI Analysis** - Our multi-agent system will:
-       - Conduct literature review
+    1. **Quick Profile Form** - Fill out a single form with your specific details and current condition
+    2. **AI Analysis** - The multi-agent system will:
+       - Conduct a preliminar literature review
        - Formulate research problem
        - Define objectives
        - Recommend methodology
@@ -289,70 +303,127 @@ def show_welcome():
 
 
 def show_interview():
-    """Display interview phase"""
+    """Display interview phase with all questions in a single form"""
     st.markdown('<div class="main-header">📋 Research Profile Interview</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Please fill out all fields to create your research profile</div>', unsafe_allow_html=True)
     
-    interviewer = get_interviewer()
-    state = st.session_state.interview_state
+    st.markdown("---")
     
-    # Show progress
-    progress = (state.current_question_index) / len(interviewer.questions)
-    st.markdown(f'<div class="progress-text">Question {state.current_question_index + 1} of {len(interviewer.questions)}</div>', unsafe_allow_html=True)
-    st.progress(progress)
-    
-    # Get current question
-    if state.current_question_index < len(interviewer.questions):
-        current_q = interviewer.questions[state.current_question_index]
+    # Create form with all questions
+    with st.form("interview_form"):
+        st.markdown("### 📚 Academic Information")
         
-        # Display question
-        st.markdown(f'<div class="question-box"><strong>{current_q.text}</strong></div>', unsafe_allow_html=True)
-        
-        # Input field
-        user_input = st.text_input(
-            "Your answer:",
-            key=f"q_{state.current_question_index}",
-            placeholder="Type your answer here..."
+        academic_program = st.selectbox(
+            "What is your current academic program?",
+            options=["Bachelor's", "Master's", "PhD", "Postdoc"],
+            help="Select your current academic level"
         )
+        
+        field_of_study = st.text_input(
+            "What is your general field of study?",
+            placeholder="e.g., Computer Science, Biology, Psychology",
+            help="Enter your broad academic field"
+        )
+        
+        research_area = st.text_input(
+            "What is your specific research area of interest?",
+            placeholder="e.g., Machine Learning, Genomics, Cognitive Behavioral Patterns",
+            help="Be as specific as possible about your research focus"
+        )
+        
+        st.markdown("---")
+        st.markdown("### ⏱️ Time & Resources")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            weekly_hours = st.number_input(
+                "How many hours per week can you dedicate to this research?",
+                min_value=1,
+                max_value=80,
+                value=20,
+                step=1,
+                help="Typical range: 10-40 hours/week"
+            )
+        
+        with col2:
+            timeline_value = st.number_input(
+                "What is your total timeline (in months)?",
+                min_value=1,
+                max_value=60,
+                value=6,
+                step=1,
+                help="How many months do you have to complete this research?"
+            )
+        
+        st.markdown("---")
+        st.markdown("### 🛠️ Skills & Constraints")
+        
+        existing_skills = st.text_area(
+            "What relevant skills do you currently possess?",
+            placeholder="e.g., Python, Statistics, Qualitative Analysis, Data Visualization\n(Separate with commas or new lines)",
+            help="List your current skills relevant to your research",
+            height=100
+        )
+        
+        missing_skills = st.text_area(
+            "Are there any specific skills you are looking to develop or currently lack?",
+            placeholder="e.g., Machine Learning, Advanced Statistics, Survey Design\n(Separate with commas or new lines)",
+            help="List skills you need to acquire",
+            height=100
+        )
+        
+        constraints = st.text_area(
+            "Do you have any specific constraints?",
+            placeholder="e.g., No fieldwork, Limited software access, Remote only, Budget constraints\n(Separate with commas or new lines)",
+            help="List any limitations or constraints on your research",
+            height=100
+        )
+        
+        additional_context = st.text_area(
+            "Is there any other context or information you'd like to share? (Optional)",
+            placeholder="Any additional details that might help us understand your research needs...",
+            help="Optional: Provide any other relevant information",
+            height=100
+        )
+        
+        st.markdown("---")
         
         # Submit button
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Submit Answer", use_container_width=True):
-                if user_input.strip():
-                    # Process the answer
-                    result = interviewer.process_turn(user_input, state)
-                    st.session_state.interview_state = result['state']
-                    
-                    if result.get('is_complete'):
-                        # Interview complete, create user profile
-                        raw = result['final_profile']
-                        
-                        # Parse timeline
-                        t_val = 6
-                        t_unit = "months"
-                        if isinstance(raw.get("total_timeline"), dict):
-                            t_val = raw["total_timeline"].get("value", 6)
-                            t_unit = raw["total_timeline"].get("unit", "months")
-                        
-                        # Create UserProfile
-                        st.session_state.user_profile = UserProfile(
-                            academic_program=raw.get("academic_program", "Master's"),
-                            field_of_study=raw.get("field_of_study", "General"),
-                            research_area=raw.get("research_area", "Unspecified"),
-                            weekly_hours=int(raw.get("weekly_hours", 20)),
-                            total_timeline=Timeline(value=t_val, unit=t_unit),
-                            existing_skills=raw.get("existing_skills", []),
-                            missing_skills=raw.get("missing_skills", []),
-                            constraints=raw.get("constraints", []),
-                            additional_context=raw.get("additional_context", "")
-                        )
-                        
-                        st.session_state.phase = 'workflow'
-                        st.rerun()
-                    else:
-                        st.rerun()
-                else:
-                    st.warning("Please provide an answer before submitting.")
+            submitted = st.form_submit_button("🚀 Generate Research Proposal", use_container_width=True)
+        
+        if submitted:
+            # Validate required fields
+            if not field_of_study.strip():
+                st.error("❌ Please enter your field of study")
+            elif not research_area.strip():
+                st.error("❌ Please enter your research area")
+            else:
+                # Parse skills and constraints (split by commas or newlines)
+                def parse_list_input(text):
+                    if not text.strip():
+                        return []
+                    # Split by comma or newline, strip whitespace, filter empty
+                    items = [item.strip() for item in text.replace('\n', ',').split(',')]
+                    return [item for item in items if item]
+                
+                # Create UserProfile
+                st.session_state.user_profile = UserProfile(
+                    academic_program=academic_program,
+                    field_of_study=field_of_study.strip(),
+                    research_area=research_area.strip(),
+                    weekly_hours=int(weekly_hours),
+                    total_timeline=Timeline(value=int(timeline_value), unit="months"),
+                    existing_skills=parse_list_input(existing_skills),
+                    missing_skills=parse_list_input(missing_skills),
+                    constraints=parse_list_input(constraints),
+                    additional_context=additional_context.strip() if additional_context.strip() else None
+                )
+                
+                st.session_state.phase = 'workflow'
+                st.rerun()
+
 
 
 def show_workflow():
@@ -366,42 +437,52 @@ def show_workflow():
     with progress_container:
         progress_bar = st.progress(0)
         status_text = st.empty()
+        refinement_info = st.empty()  # Placeholder for refinement messages
         
         # Define progress callback
         def progress_callback(step: str, pct: int):
             progress_bar.progress(pct / 100)
             status_text.markdown(f"**{step}** ({pct}%)")
+            
+            # Show refinement info box when in refinement loop
+            if "🔄 Refinement Loop" in step:
+                refinement_info.info(
+                    "ℹ️ **Quality Check:** The proposal didn't meet quality standards on the first attempt. "
+                    "The system is automatically refining it to improve coherence and feasibility. "
+                    "This is normal and ensures you get the best possible proposal!"
+                )
+            else:
+                refinement_info.empty()  # Clear the message when not refining
+            
+            # Force UI update
+            time.sleep(0.05)
         
         # Execute workflow
         try:
-            # Initialize agents
-            backend_agents = {
-                'problem_formulation': create_problem_formulation_agent(model=DEFAULT_MODEL),
-                'objectives': create_objectives_agent(model=DEFAULT_MODEL),
-                'methodology': create_methodology_agent(model=DEFAULT_MODEL),
-                'data_collection': create_data_collection_agent(model=DEFAULT_MODEL),
-                'quality_control': create_quality_control_agent(model=DEFAULT_MODEL)
-            }
-            
-            # Initialize runner
-            # Initialize runner with the first agent so it satisfies the "agent must be provided" rule.
-            # The app_name helps isolate the session.
-            runner = InMemoryRunner(
-                agent=backend_agents['problem_formulation'], 
-                app_name="streamlit_research_assistant"
-            )
-            
-            # Initialize orchestrator
-            orchestrator = ResearchProposalOrchestrator(progress_callback=progress_callback)
-            
-            # Run workflow
-            result = asyncio.run(
-                orchestrator.run_workflow(
+            # Define async wrapper to ensure agents are created INSIDE the loop
+            # This prevents "Event Loop is closed" errors during cleanup
+            async def _run_workflow_async():
+                # Initialize agents INSIDE the loop
+                backend_agents = {
+                    'problem_formulation': create_problem_formulation_agent(model=DEFAULT_MODEL),
+                    'objectives': create_objectives_agent(model=DEFAULT_MODEL),
+                    'methodology': create_methodology_agent(model=DEFAULT_MODEL),
+                    'data_collection': create_data_collection_agent(model=DEFAULT_MODEL),
+                    'quality_control': create_quality_control_agent(model=DEFAULT_MODEL)
+                }
+                
+                # Initialize orchestrator
+                orchestrator = ResearchProposalOrchestrator(progress_callback=progress_callback)
+                
+                # Run workflow
+                return await orchestrator.run_workflow(
                     agents=backend_agents,
-                    runner=runner,
+                    runner=None,
                     initial_profile=st.session_state.user_profile
                 )
-            )
+
+            # Run the async wrapper
+            result = asyncio.run(_run_workflow_async())
             
             if result["success"]:
                 st.session_state.proposal = result["proposal"]
@@ -428,12 +509,12 @@ def show_results():
     st.markdown('<div class="success-box">Your research proposal has been successfully generated!</div>', unsafe_allow_html=True)
     
     # Download buttons
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         json_str = json.dumps(proposal, indent=2)
         st.download_button(
-            label="📥 Download Proposal (JSON)",
+            label="📥 Download JSON",
             data=json_str,
             file_name=f"research_proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -443,12 +524,28 @@ def show_results():
     with col2:
         md_str = generate_markdown_proposal(proposal)
         st.download_button(
-            label="📥 Download Proposal (Markdown)",
+            label="📥 Download Markdown",
             data=md_str,
             file_name=f"research_proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
             mime="text/markdown",
             use_container_width=True
         )
+    
+    with col3:
+        # Generate comprehensive PDF
+        try:
+            pdf_buffer = generate_pdf_proposal(proposal)
+            st.download_button(
+                label="📄 Download Full PDF",
+                data=pdf_buffer,
+                file_name=f"research_proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                help="Comprehensive PDF with all proposal details"
+            )
+        except Exception as e:
+            st.error(f"PDF generation failed: {str(e)}")
+
     
     st.markdown("---")
     

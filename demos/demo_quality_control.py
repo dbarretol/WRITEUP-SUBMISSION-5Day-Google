@@ -10,11 +10,11 @@ from dotenv import load_dotenv
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from academic_research.sub_agents.quality_control import (
+from aida.sub_agents.quality_control import (
     create_quality_control_agent,
     format_prompt_for_quality_control
 )
-from academic_research.data_models import (
+from aida.data_models import (
     UserProfile,
     ProblemDefinition,
     ResearchObjectives,
@@ -45,8 +45,8 @@ async def demo_quality_validation():
     
     # Create sample problem definition
     problem_definition = ProblemDefinition(
-        problem_statement="Current multi-agent systems lack effective coordination mechanisms for resource allocation.",
-        main_research_question="How can we design coordination mechanisms that improve resource allocation efficiency?",
+        problem_statement="Current multi-agent systems lack effective coordination mechanisms for resource allocation in distributed environments.",
+        main_research_question="How can we design coordination mechanisms that improve resource allocation efficiency in multi-agent systems?",
         secondary_questions=[
             "What factors affect coordination efficiency?",
             "How do communication protocols impact performance?"
@@ -100,49 +100,48 @@ async def demo_quality_validation():
     # Create the agent
     agent = create_quality_control_agent(model="gemini-2.0-flash-lite")
     
-    # Create runner
-    runner = InMemoryRunner(agent=agent, app_name="quality-control-demo")
-    
-    # Create session
-    session = await runner.session_service.create_session(
-        app_name=runner.app_name,
-        user_id="demo_user"
-    )
-    
-    # Format the prompt
-    prompt = format_prompt_for_quality_control(
-        user_profile,
-        problem_definition,
-        research_objectives,
-        methodology,
-        data_collection
-    )
-    
-    print("=" * 80)
-    print("QUALITY-CONTROL AGENT DEMO")
-    print("=" * 80)
-    print("\nValidating Complete Research Proposal...")
-    print(f"  Field: {user_profile.field_of_study}")
-    print(f"  Timeline: {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
-    print(f"  Methodology: {methodology.recommended_methodology}")
-    
-    print("\n" + "=" * 80)
-    print("PERFORMING MULTI-CRITERIA VALIDATION...")
-    print("=" * 80 + "\n")
-    
-    # Run the agent
-    content = types.Content(parts=[types.Part(text=prompt)])
-    
-    all_responses = []
-    async for event in runner.run_async(
-        user_id=session.user_id,
-        session_id=session.id,
-        new_message=content,
-    ):
-        if event.content.parts and event.content.parts[0].text:
-            part_text = event.content.parts[0].text
-            all_responses.append(part_text)
-            print(part_text)
+    # Create runner with context manager
+    async with InMemoryRunner(agent=agent, app_name="quality-control-demo") as runner:
+        # Create session
+        session = await runner.session_service.create_session(
+            app_name=runner.app_name,
+            user_id="demo_user"
+        )
+        
+        # Format the prompt
+        prompt = format_prompt_for_quality_control(
+            user_profile,
+            problem_definition,
+            research_objectives,
+            methodology,
+            data_collection
+        )
+        
+        print("=" * 80)
+        print("QUALITY-CONTROL AGENT DEMO")
+        print("=" * 80)
+        print("\nValidating Complete Research Proposal...")
+        print(f"  Field: {user_profile.field_of_study}")
+        print(f"  Timeline: {user_profile.total_timeline.value} {user_profile.total_timeline.unit}")
+        print(f"  Methodology: {methodology.recommended_methodology}")
+        
+        print("\n" + "=" * 80)
+        print("PERFORMING MULTI-CRITERIA VALIDATION...")
+        print("=" * 80 + "\n")
+        
+        # Run the agent
+        content = types.Content(parts=[types.Part(text=prompt)])
+        
+        all_responses = []
+        async for event in runner.run_async(
+            user_id=session.user_id,
+            session_id=session.id,
+            new_message=content,
+        ):
+            if event.content.parts and event.content.parts[0].text:
+                part_text = event.content.parts[0].text
+                all_responses.append(part_text)
+                print(part_text)
     
     print("\n" + "=" * 80)
     print("DEMO COMPLETE")

@@ -3,9 +3,9 @@
 import pytest
 import json
 from unittest.mock import MagicMock, AsyncMock, patch
-from academic_research.orchestrator import ResearchProposalOrchestrator
-from academic_research.workflow_state import WorkflowState
-from academic_research.data_models import (
+from aida.orchestrator import ResearchProposalOrchestrator
+from aida.workflow_state import WorkflowState
+from aida.data_models import (
     UserProfile,
     ProblemDefinition,
     ResearchObjectives,

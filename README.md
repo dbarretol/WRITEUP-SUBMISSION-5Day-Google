@@ -1,6 +1,7 @@
 # AIDA: Academic Ideation & Drafting Assistant
 
 > **Note:** This project was inspired by the [academic_research](https://github.com/google/adk-samples/tree/main/python/agents/academic-research) sample from the [Google ADK Samples](https://github.com/google/adk-samples) repository. While the structure served as a starting point, this implementation uses a custom Orchestrator pattern, strict Pydantic enforcement, and an enhanced PDF generation pipeline.
+<img width="1344" height="768" alt="Generated Image December 01, 2025 - 9_23AM" src="https://github.com/user-attachments/assets/be4e7b5f-a135-461f-95e2-93cffef1b31e" />
 
 ## Overview
 

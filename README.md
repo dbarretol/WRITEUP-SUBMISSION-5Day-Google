@@ -196,6 +196,8 @@ python eval/test_multi_agent_pipeline.py
 
 >Deploy to Cloud Run: follow instructions in [deployment directory](deployment/README.md)
 
+<img width="1839" height="827" alt="image" src="https://github.com/user-attachments/assets/52aae6ba-a4c8-4798-9967-1ed767e714f6" />
+
 
 ## Documentation
 
